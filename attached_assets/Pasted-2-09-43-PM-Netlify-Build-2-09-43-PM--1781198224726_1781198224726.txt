@@ -1,0 +1,86 @@
+2:09:43 PM: Netlify Build                                                 
+2:09:43 PM: ────────────────────────────────────────────────────────────────
+2:09:43 PM: ​
+2:09:43 PM: ❯ Version
+2:09:43 PM:   @netlify/build 35.15.0
+2:09:43 PM: ​
+2:09:43 PM: ❯ Flags
+2:09:43 PM:   accountId: 69d6a3ac24e1c6fe98fb2323
+2:09:43 PM:   baseRelDir: true
+2:09:43 PM:   buildId: 6a2aeb88cc20be00086c26e7
+2:09:43 PM:   deployId: 6a2aeb88cc20be00086c26e9
+2:09:43 PM: ​
+2:09:43 PM: ❯ Current directory
+2:09:43 PM:   /opt/build/repo
+2:09:43 PM: ​
+2:09:43 PM: ❯ Config file
+2:09:43 PM:   /opt/build/repo/netlify.toml
+2:09:43 PM: ​
+2:09:43 PM: ❯ Context
+2:09:43 PM:   production
+2:09:43 PM: ​
+2:09:43 PM: build.command from netlify.toml                               
+2:09:43 PM: ────────────────────────────────────────────────────────────────
+2:09:43 PM: ​
+2:09:43 PM: $ npm ci --include=dev && npm run build
+2:09:44 PM: npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2:09:44 PM: npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2:09:44 PM: npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+2:09:45 PM: npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2:09:45 PM: npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2:10:54 PM: npm error Exit handler never called!
+2:10:54 PM: npm error This is an error with npm itself. Please report this error at:
+2:10:54 PM: npm error   <https://github.com/npm/cli/issues&gt;
+2:10:54 PM: npm error A complete log of this run can be found in: /opt/buildhome/.npm/_logs/2026-06-11T17_09_43_627Z-debug-0.log
+2:10:54 PM: > defesacivil@0.0.0 build
+2:10:54 PM: > vite build
+2:10:54 PM: sh: 1: vite: not found
+2:10:54 PM: ​
+2:10:54 PM: "build.command" failed                                        
+2:10:54 PM: ────────────────────────────────────────────────────────────────
+2:10:54 PM: ​
+2:10:54 PM:   Error message
+2:10:54 PM:   Command failed with exit code 127: npm ci --include=dev && npm run build (https://ntl.fyi/exit-code-127)
+2:10:54 PM: ​
+2:10:54 PM:   Error location
+2:10:54 PM:   In build.command from netlify.toml:
+2:10:54 PM:   npm ci --include=dev && npm run build
+2:10:54 PM: ​
+2:10:54 PM:   Resolved config
+2:10:54 PM:   build:
+2:10:54 PM:     command: npm ci --include=dev && npm run build
+2:10:54 PM:     commandOrigin: config
+2:10:54 PM:     environment:
+2:10:54 PM:       - VITE_SUPABASE_ANON_KEY
+2:10:54 PM:       - VITE_SUPABASE_URL
+2:10:54 PM:       - NODE_VERSION
+2:10:54 PM:       - VITE_USE_SUPABASE
+2:10:54 PM:       - VITE_VAPID_PUBLIC_KEY
+2:10:54 PM:     publish: /opt/build/repo/dist
+2:10:54 PM:     publishOrigin: config
+2:10:54 PM:   functionsDirectory: /opt/build/repo/netlify/functions
+2:10:54 PM:   headers:
+2:10:54 PM:     - for: /sw.js
+2:10:54 PM:       values:
+2:10:54 PM:         Cache-Control: public, max-age=0, must-revalidate
+2:10:54 PM:         Service-Worker-Allowed: /
+2:10:54 PM:     - for: /manifest.json
+2:10:54 PM:       values:
+2:10:54 PM:         Cache-Control: public, max-age=0, must-revalidate
+2:10:54 PM:     - for: /assets/*
+      values:
+        Cache-Control: public, max-age=31536000, immutable
+  headersOrigin: config
+  redirects:
+    - force: true
+      from: /api/send-sos-push
+      status: 200
+      to: /.netlify/functions/send-sos-push
+    - from: /*
+      status: 200
+      to: /index.html
+  redirectsOrigin: config
+2:10:54 PM: Build failed due to a user error: Build script returned non-zero exit code: 2
+2:10:55 PM: Failed during stage 'building site': Build script returned non-zero exit code: 2 (https://ntl.fyi/exit-code-2)
+2:10:55 PM: Failing build: Failed to build site
+2:10:55 PM: Finished processing build request in 2m30.028s

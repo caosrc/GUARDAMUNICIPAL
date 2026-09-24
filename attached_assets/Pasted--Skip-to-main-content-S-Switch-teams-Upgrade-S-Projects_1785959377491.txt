@@ -1,0 +1,326 @@
+
+Skip to main content
+
+
+S
+Switch teams
+Upgrade
+
+S
+Projects
+dc-2026
+Switch projects
+
+News
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Support
+Project navigation
+Project overview
+Project configuration
+Deploys
+Preview Servers
+Agent runs
+Logs & metrics
+Web security
+Domain management
+Forms
+Blobs
+Database
+
+Configuration for dc-2026
+dc-2026.netlify.app
+
+Deploys from GitHub.
+
+Last update at 4:45 PM (4 minutes ago).
+
+Skip to content
+General
+Project details
+Visitor access
+Status badges
+Project members
+Danger zone
+Build & deploy
+Continuous deployment
+Post processing
+Split Testing
+Build plugins
+Environment variables
+Environment variables
+Project policies
+Visual editor
+Notifications
+Slack notifications
+Emails and webhooks
+Identity
+Access & security
+Firewall Traffic Rules
+Web Application Firewall
+OAuth
+Emails
+Environment variables
+Securely store secrets, API keys, tokens, and other environment variables
+
+Learn more about environment variables in the docs
+
+Add a variable
+Filter by key name
+Filter by key name
+
+Any scope
+Any context
+Sort
+
+FIRMS_MAP_KEY
+All scopes · Same value in all deploy contexts
+
+S
+Sócrates Resende updated 2 minutes ago
+
+Options
+Deploy context	Value	
+Production
+
+•••••••
+
+Deploy Previews
+
+•••••••
+
+Branch deploys
+
+•••••••
+
+Preview Server & Agent Runners
+
+•••••••
+
+Local development (Netlify CLI)
+
+•••••••
+
+Project policies
+Configure project-wide environment variable policies
+
+Sensitive variable policy
+Deploy Previews triggered by a pull request from an unrecognized author’s fork are considered untrusted deploys. Choose how to manage sensitive environment variable access for these deploys.
+Untrusted deploys
+Require approval
+Learn more about sensitive variable policy in the docs
+
+Edit settings
+Docs
+Pricing
+Support
+Blog
+Changelog
+Terms
+© 2026 Netlify
+
+🔒New: Private by default
+Build privately. Share when you're ready. Adjust settings
+

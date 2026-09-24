@@ -1,0 +1,309 @@
+.sos-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 16px;
+  background: rgba(127, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  overflow-y: auto;
+  pointer-events: auto;
+  animation: sos-overlay-in 0.2s ease-out;
+}
+@keyframes sos-overlay-in {
+  from { background: rgba(127, 0, 0, 0); }
+  to   { background: rgba(127, 0, 0, 0.55); }
+}
+
+.sos-card {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 12px 0;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 4px rgba(255, 255, 255, 0.18);
+  background: #fff;
+  animation: sos-card-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes sos-card-pop {
+  from { transform: scale(0.85); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.sos-card-pisca {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  opacity: 0.95;
+  z-index: 0;
+  animation: sos-pisca 0.7s ease-in-out infinite alternate;
+}
+@keyframes sos-pisca {
+  from { opacity: 0.65; box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  to   { opacity: 1;    box-shadow: 0 0 0 14px rgba(220, 38, 38, 0); }
+}
+
+.sos-card-conteudo {
+  position: relative;
+  z-index: 1;
+  padding: 18px 18px 16px;
+  color: #fff;
+}
+
+.sos-card-titulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.sos-icone {
+  font-size: 2.4rem;
+  animation: sos-shake 0.5s ease-in-out infinite;
+}
+@keyframes sos-shake {
+  0%, 100% { transform: rotate(-8deg) scale(1); }
+  50%      { transform: rotate(8deg)  scale(1.1); }
+}
+.sos-tit {
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.sos-sub {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-top: 4px;
+  opacity: 0.97;
+}
+
+.sos-info {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.sos-info-linha { display: flex; align-items: center; gap: 6px; }
+.sos-info-linha strong { font-weight: 800; }
+.sos-info-erro    { opacity: 0.85; font-style: italic; }
+.sos-info-aguarde { opacity: 0.85; font-style: italic; }
+
+.sos-info-audio {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sos-info-audio audio {
+  width: 100%;
+  height: 38px;
+  border-radius: 8px;
+}
+
+.sos-chat {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sos-chat-titulo {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  opacity: 0.9;
+}
+.sos-chat-msgs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 100px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.sos-chat-msg {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 0.82rem;
+  background: rgba(255,255,255,0.12);
+  border-radius: 7px;
+  padding: 4px 8px;
+  color: #fff;
+}
+.sos-chat-msg-hora {
+  font-size: 0.72rem;
+  opacity: 0.65;
+  flex-shrink: 0;
+}
+.sos-chat-msg-agente {
+  color: #fde68a;
+  flex-shrink: 0;
+}
+.sos-chat-msg-txt {
+  word-break: break-word;
+}
+.sos-chat-row {
+  display: flex;
+  gap: 6px;
+}
+.sos-chat-input {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.88rem;
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  outline: none;
+}
+.sos-chat-input::placeholder { color: rgba(255,255,255,0.55); }
+.sos-chat-input:focus { background: rgba(255,255,255,0.22); }
+.sos-chat-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #ffffff;
+  color: #991b1b;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.sos-chat-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.sos-chat-btn:not(:disabled):hover { opacity: 0.88; }
+
+.sos-chat-modo-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.sos-chat-modo-btn {
+  flex: 1;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.sos-chat-modo-btn.ativo {
+  background: rgba(255,255,255,0.9);
+  color: #991b1b;
+  border-color: transparent;
+}
+
+.sos-audio-resposta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sos-audio-gravar-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.9);
+  color: #991b1b;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.15s;
+}
+.sos-audio-gravar-btn:active { opacity: 0.8; }
+.sos-audio-gravando {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fde68a;
+}
+.sos-audio-cancelar-btn {
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  background: rgba(0,0,0,0.25);
+  color: #fca5a5;
+  cursor: pointer;
+  margin-left: auto;
+}
+.sos-audio-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sos-audio-preview-acoes {
+  display: flex;
+  gap: 8px;
+}
+.sos-audio-preview-acoes .sos-chat-btn { flex: 1; }
+.sos-audio-preview-acoes .sos-audio-cancelar-btn { margin-left: 0; }
+
+.sos-chat-msg {
+  flex-wrap: wrap;
+}
+
+.sos-botoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sos-btn {
+  border: none;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.sos-btn:active { transform: scale(0.97); }
+.sos-btn-primario {
+  background: #ffffff;
+  color: #991b1b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+.sos-btn-secundario {
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+.sos-btn-falso {
+  background: rgba(0, 0, 0, 0.45);
+  color: #fca5a5;
+  border: 1px solid rgba(252, 165, 165, 0.5);
+  font-size: 0.9rem;
+}
+
+.sos-rodape {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  opacity: 0.85;
+  font-style: italic;
+}
+
+@media (max-width: 380px) {
+  .sos-tit { font-size: 1.3rem; }
+  .sos-sub { font-size: 0.85rem; }
+  .sos-info { font-size: 0.85rem; }
+  .sos-icone { font-size: 2rem; }
+}

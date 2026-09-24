@@ -1,0 +1,201 @@
+export type NivelRisco = 'baixo' | 'medio' | 'alto'
+export type StatusOc = 'ativo' | 'resolvido'
+
+export interface VistoriaAdicional {
+  data: string
+  observacao: string
+  fotos: string[]
+  agente: string | null
+  status?: StatusOc
+}
+
+export interface Ocorrencia {
+  id: number
+  tipo: string
+  natureza: string
+  subnatureza: string | null
+  nivel_risco: NivelRisco
+  status_oc: StatusOc
+  fotos: string[]
+  descricoes_fotos?: string[] | null
+  lat: number | null
+  lng: number | null
+  endereco: string | null
+  proprietario: string | null
+  telefone_proprietario?: string | null
+  situacao: string | null
+  recomendacao: string | null
+  conclusao: string | null
+  data_ocorrencia: string | null
+  hora_inicio: string | null
+  hora_fim: string | null
+  horas_total: number | null
+  horas_sobreaviso: number | null
+  created_at: string
+  agentes: string[]
+  responsavel_registro: string | null
+  vistorias: VistoriaAdicional[] | null
+  focos_incendio?: { lat: number; lng: number }[] | null
+  poligono_area_queimada?: { lat: number; lng: number }[] | null
+  chuva?: number | null
+  metragem_lona?: number | null
+  origem?: 'curral'
+  _offline?: boolean
+  _localId?: number
+}
+
+/** Agentes atualmente disponíveis no acesso e nas telas operacionais. */
+export const AGENTES = ['Alexandre', 'Arthur', 'Lucas', 'Junior', 'Rosane']
+
+/** Compatibilidade para sessões e escalas criadas antes da anonimização dos nomes. */
+export const AGENTES_LEGADOS_PARA_NOVOS: Record<string, string> = {
+  A: 'Alexandre',
+  B: 'Arthur',
+  C: 'Lucas',
+  D: 'Junior',
+  E: 'Rosane',
+  'Moisés': 'Alexandre',
+  Valteir: 'Arthur',
+}
+
+export function normalizarNomeAgente(nome: string): string {
+  const valor = String(nome ?? '').trim()
+  return AGENTES_LEGADOS_PARA_NOVOS[valor] ?? valor
+}
+
+/** Arthur também administra os registros que foram criados pelo agente legado J. */
+export function agentePodeGerenciarCriacao(criador: string | null | undefined, agente: string | null | undefined): boolean {
+  const nomeCriador = String(criador ?? '').trim()
+  const nomeAgente = normalizarNomeAgente(String(agente ?? '').trim())
+  return nomeCriador === nomeAgente
+    || (nomeAgente === 'Arthur' && nomeCriador === 'J')
+}
+
+export const AGENTE_SENHAS: Record<string, string> = {
+  Alexandre: '4668',
+  Arthur: '1234',
+  Lucas: '0356',
+  Junior: '1234',
+  Rosane: '1969',
+  // Mantidos para sessões antigas que ainda carreguem a identificação A–J.
+  A: '1234',
+  B: '1234',
+  C: '1234',
+  D: '1234',
+  E: '1234',
+  F: '1234',
+  G: '1234',
+  H: '1234',
+  I: '1234',
+  J: '1234',
+}
+
+export function getSenhaAgente(nome: string): string | null {
+  return AGENTE_SENHAS[normalizarNomeAgente(nome)] ?? null
+}
+
+export const TIPOS_OCORRENCIA = ['Diligência', 'Vistoria de Engenharia', 'Vistoria Ambiental', 'Apoio', 'Outro']
+
+export const NATUREZAS = [
+  'Incêndio em Área Urbana',
+  'Incêndio em Área Rural',
+  'Vistoria Preventiva',
+  'Sistema de Drenagem',
+  'Precariedade em residência',
+  'Pavimentação',
+  'Inundação',
+  'Infiltrações',
+  'Hidrológico/Geológico',
+  'Hidrológico/Estrutural',
+  'Hidrológico',
+  'Geológico',
+  'Estrutural/Geológico',
+  'Estrutural',
+  'Corte/poda árvores',
+  'Colisão veículo/residência',
+  'Alagamento',
+  'Entrega de Lona',
+]
+
+export const NATUREZA_ICONE: Record<string, string> = {
+  'Árvore Gerando Risco (Caída ou Não)': '🌳',
+  'Rompimento de Cabo de Energia': '⚡',
+  'Rompimento de Cabo de Telefonia': '📡',
+  'Queda de Poste (Total ou Parcial)': '🏗️',
+  'Óleo na Pista': '🛢️',
+  'Incêndio em Área Urbana': '🔥',
+  'Incêndio em Área Rural': '🔥',
+  'Alagamento': '💧',
+  'Entrega de Lona': '🟦',
+  'Inundação': '🌊',
+  'Queda de Estrutura': '🏚️',
+  'Deslizamento de Massa/Rocha': '⛰️',
+  'Processo Erosivo': '🏔️',
+  'Apreensão e Captura de Animal': '🐾',
+  'Captura de animal': '🐾',
+  'Abelhas/Marimbondo': '🐝',
+  'Vistoria Residencial': '🏠',
+  'Talude em Risco': '🪨',
+  'Interdição de Imóvel': '🚫',
+  'Interdição de Via': '🚧',
+  'Acidente de Trânsito': '🚗',
+  'Sinalização de Segurança': '🚦',
+  'Eventos': '🎪',
+  'Apreensão de animal': '🐾',
+  'Vistoria Preventiva': '🔎',
+  'Sistema de Drenagem': '🕳️',
+  'Precariedade em residência': '🏚️',
+  'Pavimentação': '🛣️',
+  'Infiltrações': '💧',
+  'Hidrológico/Geológico': '🌧️',
+  'Hidrológico/Estrutural': '🌧️',
+  'Hidrológico': '🌧️',
+  'Geológico': '⛰️',
+  'Estrutural/Geológico': '🏚️',
+  'Estrutural': '🏗️',
+  'Corte/poda árvores': '🌳',
+  'Colisão veículo/residência': '🚗',
+  'Fiscalização': '⚖️',
+  'Fiscalização Procon': '⚖️',
+}
+
+export const NATUREZA_COR: Record<string, string> = {
+  'Árvore Gerando Risco (Caída ou Não)': '#16a34a',
+  'Rompimento de Cabo de Energia': '#eab308',
+  'Rompimento de Cabo de Telefonia': '#7c3aed',
+  'Queda de Poste (Total ou Parcial)': '#6b7280',
+  'Óleo na Pista': '#78350f',
+  'Incêndio em Área Urbana': '#dc2626',
+  'Incêndio em Área Rural': '#ea580c',
+  'Alagamento': '#2563eb',
+  'Inundação': '#0284c7',
+  'Queda de Estrutura': '#9f1239',
+  'Deslizamento de Massa/Rocha': '#92400e',
+  'Processo Erosivo': '#b45309',
+  'Apreensão e Captura de Animal': '#7c3aed',
+  'Captura de animal': '#7c3aed',
+  'Abelhas/Marimbondo': '#ca8a04',
+  'Vistoria Residencial': '#0f766e',
+  'Talude em Risco': '#854d0e',
+  'Interdição de Imóvel': '#b91c1c',
+  'Interdição de Via': '#c2410c',
+  'Acidente de Trânsito': '#ef4444',
+  'Sinalização de Segurança': '#f59e0b',
+  'Eventos': '#0891b2',
+  'Apreensão de animal': '#7c3aed',
+  'Vistoria Preventiva': '#0f766e',
+  'Sistema de Drenagem': '#2563eb',
+  'Precariedade em residência': '#92400e',
+  'Pavimentação': '#64748b',
+  'Infiltrações': '#0284c7',
+  'Hidrológico/Geológico': '#0369a1',
+  'Hidrológico/Estrutural': '#0e7490',
+  'Hidrológico': '#0891b2',
+  'Geológico': '#92400e',
+  'Estrutural/Geológico': '#9f1239',
+  'Estrutural': '#6b7280',
+  'Corte/poda árvores': '#16a34a',
+  'Colisão veículo/residência': '#ef4444',
+  'Fiscalização': '#0f766e',
+  'Fiscalização Procon': '#0f766e',
+}

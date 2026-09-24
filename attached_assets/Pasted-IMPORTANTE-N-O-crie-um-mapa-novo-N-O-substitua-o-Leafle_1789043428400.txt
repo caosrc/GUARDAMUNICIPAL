@@ -1,0 +1,298 @@
+IMPORTANTE:
+NÃO crie um mapa novo.
+NÃO substitua o Leaflet.
+NÃO substitua o OpenStreetMap.
+NÃO remova as funções atuais do aplicativo.
+
+Analise primeiro o código existente e identifique:
+- onde o mapa Leaflet é criado;
+- onde estão as camadas OpenStreetMap;
+- onde está a camada Satélite;
+- onde está a camada Chuva;
+- onde está o RainViewer;
+- onde está o código RRQPE/GOES;
+- como o painel "Chuva ao vivo" é construído.
+
+Depois faça a implementação abaixo.
+
+==================================================
+1. RAINVIEWER
+==================================================
+
+Manter o RainViewer existente funcionando.
+
+Usar a API pública atual do RainViewer para os tiles de radar passado.
+
+Endpoint da API:
+https://api.rainviewer.com/public/weather-maps.json
+
+A API retorna:
+- host
+- radar.past
+- path
+- timestamp
+
+Construir o tile dinamicamente usando host + path retornados pela API.
+
+Formato do tile:
+{host}{path}/256/{z}/{x}/{y}/2/1_0.png
+
+Não usar URLs antigas fixas.
+
+Não inventar nowcast.
+
+Não usar produto de satélite do RainViewer.
+
+Colocar a atribuição:
+"Weather data by RainViewer"
+
+Atualizar os dados periodicamente sem recarregar a página inteira.
+
+==================================================
+2. RRQPE
+==================================================
+
+REMOVER a tentativa atual de mostrar RRQPE diretamente como tile XYZ.
+
+Não fingir que GOES é RRQPE.
+
+Não chamar uma camada GOES de RRQPE.
+
+Se não existir no projeto um serviço real de conversão do NetCDF RRQPE para tiles HTTPS, deixar o RRQPE desativado.
+
+No painel, informar:
+
+"RRQPE NOAA: indisponível no mapa no momento"
+
+Não gerar dados falsos.
+
+==================================================
+3. GOES / NUVENS
+==================================================
+
+Criar uma camada separada chamada:
+
+"☁️ Nuvens GOES"
+
+Ela deve ser independente do RRQPE.
+
+Não dizer que a imagem de nuvens é chuva.
+
+Se existir uma fonte HTTPS de imagens/tiles GOES compatível com Leaflet, usar essa fonte.
+
+Se não existir uma fonte de tiles pronta, NÃO inventar uma URL.
+
+Nesse caso, criar a estrutura da camada e deixar claramente indicado no código onde a URL de tiles GOES deverá ser configurada.
+
+A camada deve ter opacidade configurável, por exemplo:
+
+0.35 a 0.70
+
+para permitir enxergar o mapa por baixo.
+
+==================================================
+4. 7 ESTAÇÕES CEMADEN
+==================================================
+
+Usar estas estações:
+
+Belavinha       CEMADEN 4146
+Buarque Macedo  CEMADEN 4144
+Centro          CEMADEN 3121
+Rio Bananeiras  CEMADEN 6622
+Santa Efigênia  CEMADEN 4145
+Santa Matilde   CEMADEN 4143
+São Sebastião   CEMADEN 4142
+
+NÃO mostrar essas estações como bolinhas no mapa por padrão.
+
+Os dados delas devem ser usados para gerar uma superfície de precipitação.
+
+IMPORTANTE:
+Não inventar latitude, longitude ou valores de chuva.
+
+Obter as coordenadas oficiais das estações usando a fonte oficial do CEMADEN.
+
+Obter os dados reais de precipitação das estações.
+
+Se o acesso aos dados do CEMADEN não puder ser feito diretamente pelo navegador devido a CORS, criar uma função/backend no servidor atual do projeto para buscar os dados.
+
+Não colocar credenciais secretas no frontend.
+
+==================================================
+5. MAPA DE INTENSIDADE SEM BOLINHAS
+==================================================
+
+Criar uma camada visual contínua de intensidade de chuva.
+
+Não usar marcadores circulares.
+
+Não mostrar somente 7 pontos.
+
+Usar os valores das 7 estações para calcular uma superfície interpolada.
+
+Preferencialmente usar IDW (Inverse Distance Weighting) para a interpolação inicial.
+
+A superfície deve ficar limitada à área de interesse do aplicativo.
+
+As cores devem representar intensidade:
+
+0 mm/h:
+transparente
+
+0.1 - 2 mm/h:
+azul claro
+
+2 - 10 mm/h:
+verde
+
+10 - 30 mm/h:
+amarelo
+
+30 - 50 mm/h:
+laranja
+
+50 - 80 mm/h:
+vermelho
+
+>80 mm/h:
+roxo
+
+Não afirmar que a interpolação é uma medição real.
+
+Mostrar na legenda:
+
+"Estimativa interpolada entre estações CEMADEN"
+
+==================================================
+6. COMBINAÇÃO VISUAL
+==================================================
+
+As camadas devem poder ser ligadas/desligadas independentemente:
+
+☁️ Nuvens GOES
+🌧️ Radar RainViewer
+🌈 Intensidade CEMADEN
+
+Adicionar controles de opacidade.
+
+Ordem das camadas:
+
+Mapa base
+↓
+Nuvens GOES
+↓
+Radar RainViewer
+↓
+Intensidade CEMADEN
+
+A intensidade CEMADEN deve ser semitransparente para que o mapa e o radar continuem visíveis.
+
+==================================================
+7. PAINEL "CHUVA AO VIVO"
+==================================================
+
+Manter o painel existente mostrado na interface.
+
+Atualizar para apresentar:
+
+🌧️ Chuva ao vivo
+
+Radar:
+[horário]
+
+CEMADEN:
+[horário da última atualização]
+
+Nuvens:
+[horário da imagem]
+
+Intensidade estimada:
+[valor]
+
+Situação:
+Sem chuva / fraca / moderada / forte / muito forte / extrema
+
+Não mostrar "RRQPE · GOES-16".
+
+Esses produtos são diferentes.
+
+==================================================
+8. ATUALIZAÇÃO
+==================================================
+
+Criar atualização automática.
+
+Radar:
+consultar os metadados do RainViewer periodicamente.
+
+CEMADEN:
+atualizar conforme a frequência disponível dos dados.
+
+GOES:
+atualizar conforme a fonte utilizada.
+
+Não fazer centenas de requisições por minuto.
+
+Usar cache quando possível.
+
+==================================================
+9. MOBILE
+==================================================
+
+O aplicativo é usado principalmente em celular.
+
+Não aumentar excessivamente o consumo de memória.
+
+Ao trocar de camada, remover corretamente a camada anterior.
+
+Não criar múltiplos TileLayers iguais.
+
+Evitar vazamento de memória.
+
+==================================================
+10. TESTES
+==================================================
+
+Depois de implementar:
+
+1. executar npm build ou o comando de build existente;
+2. corrigir todos os erros;
+3. verificar se o mapa continua abrindo;
+4. verificar se OpenStreetMap continua funcionando;
+5. verificar Satélite;
+6. verificar RainViewer;
+7. verificar Chuva;
+8. verificar que nenhuma URL inválida está sendo chamada;
+9. verificar que o RRQPE não aparece como se estivesse funcionando;
+10. verificar que o frontend não quebra se o CEMADEN estiver temporariamente indisponível.
+
+Se uma fonte meteorológica estiver indisponível, o mapa deve continuar funcionando.
+
+NÃO considere a tarefa concluída simplesmente porque o build passou.
+
+Teste também as requisições das camadas.
+
+==================================================
+RESULTADO ESPERADO
+==================================================
+
+Quero manter exatamente o mapa atual do aplicativo.
+
+Quero adicionar:
+
+☁️ nuvens reais por satélite
++
+🌧️ radar RainViewer
++
+🌈 superfície contínua de intensidade de chuva baseada nas 7 estações CEMADEN
+
+SEM BOLINHAS DAS ESTAÇÕES.
+
+Não invente dados.
+Não invente URLs.
+Não chame GOES de RRQPE.
+Não substitua RRQPE por outro produto.
+
+Antes de alterar arquivos, explique brevemente quais arquivos encontrou e quais pretende modificar.
+Depois implemente.

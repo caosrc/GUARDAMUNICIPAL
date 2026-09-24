@@ -1,0 +1,101 @@
+Name	Schema	Description	
+Ocorrências	public		
+
+audit_log_entries	auth	Auth: Audit trail for user actions.	
+
+buckets	storage		
+
+buckets_analytics	storage		
+
+buckets_vectors	storage		
+
+checklist	public		
+
+checklists_viatura	public		
+
+custom_oauth_providers	auth		
+
+escala_estado	public		
+
+flow_state	auth	Stores metadata for all OAuth/SSO login flows	
+
+identities	auth	Auth: Stores identities associated to a user.	
+
+instances	auth	Auth: Manages users across multiple sites.	
+
+locations	public		
+
+messages	realtime		
+
+messages_2026_04_26	realtime		
+
+messages_2026_04_27	realtime		
+
+messages_2026_04_28	realtime		
+
+messages_2026_04_29	realtime		
+
+messages_2026_04_30	realtime		
+
+messages_2026_05_01	realtime		
+
+messages_2026_05_02	realtime		
+
+mfa_amr_claims	auth	auth: stores authenticator method reference claims for multi factor authentication	
+
+mfa_challenges	auth	auth: stores metadata about challenge requests made	
+
+mfa_factors	auth	auth: stores metadata about factors	
+
+migrations	storage		
+
+oauth_authorizations	auth		
+
+oauth_client_states	auth	Stores OAuth states for third-party provider authentication flows where Supabase acts as the OAuth client.	
+
+oauth_clients	auth		
+
+oauth_consents	auth		
+
+objects	storage		
+
+ocorrencias	public		
+
+one_time_tokens	auth		
+
+refresh_tokens	auth	Auth: Store of tokens used to refresh JWT tokens once they expire.	
+
+s3_multipart_uploads	storage		
+
+s3_multipart_uploads_parts	storage		
+
+saml_providers	auth	Auth: Manages SAML Identity Provider connections.	
+
+saml_relay_states	auth	Auth: Contains SAML Relay State information for each Service Provider initiated login.	
+
+schema_migrations	auth	Auth: Manages updates to the auth system.	
+
+schema_migrations	realtime		
+
+secrets	vault	Table with encrypted `secret` column for storing sensitive information on disk.	
+
+sessions	auth	Auth: Stores session data associated to a user.	
+
+sos_alertas	public		
+
+sos_ativos	public		
+
+sso_domains	auth	Auth: Manages SSO email address domain mapping to an SSO Identity Provider.	
+
+sso_providers	auth	Auth: Manages SSO identity provider information; see saml_providers for SAML.	
+
+subscription	realtime		
+
+users	auth	Auth: Stores user login data within a secure schema.	
+
+vector_indexes	storage		
+
+webauthn_challenges	auth		
+
+webauthn_credentials	auth		
+

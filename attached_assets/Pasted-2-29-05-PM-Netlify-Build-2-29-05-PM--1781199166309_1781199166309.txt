@@ -1,0 +1,83 @@
+2:29:05 PM: Netlify Build                                                 
+2:29:05 PM: ────────────────────────────────────────────────────────────────
+2:29:05 PM: ​
+2:29:05 PM: ❯ Version
+2:29:05 PM:   @netlify/build 35.15.0
+2:29:05 PM: ​
+2:29:05 PM: ❯ Flags
+2:29:05 PM:   accountId: 69d6a3ac24e1c6fe98fb2323
+2:29:05 PM:   baseRelDir: true
+2:29:05 PM:   buildId: 6a2af011acfeae0008c862cb
+2:29:05 PM:   deployId: 6a2af011acfeae0008c862cd
+2:29:06 PM: ​
+2:29:06 PM: ❯ Current directory
+2:29:06 PM:   /opt/build/repo
+2:29:06 PM: ​
+2:29:06 PM: ❯ Config file
+2:29:06 PM:   /opt/build/repo/netlify.toml
+2:29:06 PM: ​
+2:29:06 PM: ❯ Context
+2:29:06 PM:   production
+2:29:06 PM: ​
+2:29:06 PM: build.command from netlify.toml                               
+2:29:06 PM: ────────────────────────────────────────────────────────────────
+2:29:06 PM: ​
+2:29:06 PM: $ npm install && npm run build
+2:29:07 PM: npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2:29:07 PM: npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2:30:17 PM: Failed during stage 'building site': Build script returned non-zero exit code: 2 (https://ntl.fyi/exit-code-2)
+2:30:17 PM: npm error Exit handler never called!
+2:30:17 PM: npm error This is an error with npm itself. Please report this error at:
+2:30:17 PM: npm error   <https://github.com/npm/cli/issues&gt;
+2:30:17 PM: npm error A complete log of this run can be found in: /opt/buildhome/.npm/_logs/2026-06-11T17_29_06_161Z-debug-0.log
+2:30:17 PM: > defesacivil@0.0.0 build
+2:30:17 PM: > vite build
+2:30:17 PM: sh: 1: vite: not found
+2:30:17 PM: ​
+2:30:17 PM: "build.command" failed                                        
+2:30:17 PM: ────────────────────────────────────────────────────────────────
+2:30:17 PM: ​
+2:30:17 PM:   Error message
+2:30:17 PM:   Command failed with exit code 127: npm install && npm run build (https://ntl.fyi/exit-code-127)
+2:30:17 PM: ​
+2:30:17 PM:   Error location
+2:30:17 PM:   In build.command from netlify.toml:
+2:30:17 PM:   npm install && npm run build
+2:30:17 PM: ​
+2:30:17 PM:   Resolved config
+2:30:17 PM:   build:
+2:30:17 PM:     command: npm install && npm run build
+2:30:17 PM:     commandOrigin: config
+2:30:17 PM:     environment:
+2:30:17 PM:       - VITE_SUPABASE_ANON_KEY
+2:30:17 PM:       - VITE_SUPABASE_URL
+2:30:17 PM:       - NODE_VERSION
+2:30:17 PM:       - VITE_USE_SUPABASE
+2:30:17 PM:       - VITE_VAPID_PUBLIC_KEY
+2:30:17 PM:     publish: /opt/build/repo/dist
+2:30:17 PM:     publishOrigin: config
+2:30:17 PM:   functionsDirectory: /opt/build/repo/netlify/functions
+2:30:17 PM:   headers:
+2:30:17 PM:     - for: /sw.js
+2:30:17 PM:       values:
+2:30:17 PM:         Cache-Control: public, max-age=0, must-revalidate
+2:30:17 PM:         Service-Worker-Allowed: /
+2:30:17 PM:     - for: /manifest.json
+2:30:17 PM:       values:
+2:30:17 PM:         Cache-Control: public, max-age=0, must-revalidate
+2:30:17 PM:     - for: /assets/*
+      values:
+        Cache-Control: public, max-age=31536000, immutable
+  headersOrigin: config
+  redirects:
+    - force: true
+      from: /api/send-sos-push
+      status: 200
+      to: /.netlify/functions/send-sos-push
+    - from: /*
+      status: 200
+      to: /index.html
+  redirectsOrigin: config
+2:30:17 PM: Build failed due to a user error: Build script returned non-zero exit code: 2
+2:30:17 PM: Failing build: Failed to build site
+2:30:17 PM: Finished processing build request in 2m30.075s

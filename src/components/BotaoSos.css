@@ -1,0 +1,369 @@
+.sos-fab {
+  position: fixed;
+  right: 14px;
+  bottom: 88px;
+  z-index: 9000;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #fff;
+  font-size: 1.7rem;
+  font-weight: 800;
+  box-shadow: 0 8px 22px rgba(185, 28, 28, 0.5), 0 0 0 0 rgba(239, 68, 68, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: sos-fab-pulso 2s ease-out infinite;
+}
+@keyframes sos-fab-pulso {
+  0%   { box-shadow: 0 8px 22px rgba(185, 28, 28, 0.5), 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  70%  { box-shadow: 0 8px 22px rgba(185, 28, 28, 0.5), 0 0 0 12px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 8px 22px rgba(185, 28, 28, 0.5), 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+.sos-fab:active { transform: scale(0.95); }
+
+.sos-fab-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.sos-fab-painel {
+  width: 100%;
+  max-width: 360px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  animation: sos-fab-pop 0.18s ease-out;
+}
+.sos-fab-enviando {
+  margin-top: 12px;
+  padding: 12px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+@keyframes sos-fab-pop {
+  from { transform: scale(0.9); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.sos-fab-tit {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #b91c1c;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+.sos-fab-sub {
+  font-size: 0.9rem;
+  color: #475569;
+  text-align: center;
+  margin: 8px 0 14px;
+  line-height: 1.4;
+}
+.sos-fab-disparar {
+  position: relative;
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  border: none;
+  background: #fee2e2;
+  color: #7f1d1d;
+  font-size: 1rem;
+  font-weight: 800;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.sos-fab-disparar:disabled { opacity: 0.7; }
+.sos-fab-disparar-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform 0.06s linear;
+  z-index: 0;
+}
+.sos-fab-disparar-txt {
+  position: relative;
+  z-index: 1;
+  mix-blend-mode: difference;
+  color: #fff;
+}
+.sos-fab-cancelar {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sos-fab-cancelar:disabled { opacity: 0.6; }
+.sos-fab-erro {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
+.sos-fab-ok {
+  padding: 12px 16px;
+  background: #dcfce7;
+  color: #14532d;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-align: center;
+  border: 1px solid #86efac;
+}
+
+.sos-fab-vizs {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+.sos-fab-vizs-aguardo {
+  color: #6b7280;
+  font-style: italic;
+}
+.sos-fab-vizs-lista {
+  color: #0c4a6e;
+}
+.sos-fab-vizs-lista strong {
+  color: #0369a1;
+}
+
+.sos-fab-chat {
+  margin-top: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sos-fab-chat-titulo {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: #374151;
+}
+.sos-fab-chat-vazio {
+  font-size: 0.82rem;
+  color: #9ca3af;
+  font-style: italic;
+  text-align: center;
+  padding: 4px 0;
+}
+.sos-fab-chat-msgs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 110px;
+  overflow-y: auto;
+}
+.sos-fab-chat-msg {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 0.82rem;
+  background: #eff6ff;
+  border-radius: 7px;
+  padding: 4px 8px;
+  color: #1e293b;
+}
+.sos-fab-chat-hora {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.sos-fab-chat-agente {
+  color: #1d4ed8;
+  flex-shrink: 0;
+}
+.sos-fab-chat-txt {
+  word-break: break-word;
+  color: #374151;
+}
+
+.sos-fab-cancelar--falso {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1.5px solid #fca5a5;
+  font-size: 0.93rem;
+}
+.sos-fab-cancelar--falso:hover { background: #fecaca; }
+
+/* Painel de gravação de áudio (10s antes de enviar o SOS) */
+.sos-fab-gravando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 14px;
+  background: #fef2f2;
+  border: 2px solid #ef4444;
+  border-radius: 12px;
+  text-align: center;
+}
+.sos-fab-gravando-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #dc2626;
+  box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+  animation: sos-rec-pulse 1s infinite;
+}
+@keyframes sos-rec-pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(220, 38, 38, 0.7); }
+  70%  { box-shadow: 0 0 0 12px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0   rgba(220, 38, 38, 0); }
+}
+.sos-fab-gravando-txt {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #991b1b;
+}
+.sos-fab-gravando-txt strong {
+  font-size: 1.25rem;
+  color: #7f1d1d;
+}
+.sos-fab-gravando-sub {
+  font-size: 0.82rem;
+  color: #7f1d1d;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.sos-fab-audio-ok {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+}
+.sos-fab-audio-falhou {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.35;
+}
+
+/* Botão inline (dentro do mapa ao lado de Legenda) — sem animação de piscar */
+.sos-botao-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 2px solid #ef4444;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(185, 28, 28, 0.35);
+  white-space: nowrap;
+}
+.sos-botao-inline:active { transform: scale(0.95); }
+.sos-botao-inline-txt { font-size: 0.82rem; letter-spacing: 0.04em; }
+
+/* Modal no mapa: aparece abaixo do campo de busca, sem fundo escuro bloqueando */
+.sos-fab-modal--mapa {
+  align-items: flex-start;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  padding-top: 162px;
+}
+/* Painel menor no mapa */
+.sos-fab-painel--mapa {
+  max-width: 320px;
+}
+.sos-fab-painel--mapa .sos-fab-tit {
+  font-size: 1.05rem;
+}
+.sos-fab-painel--mapa .sos-fab-sub {
+  font-size: 0.78rem;
+  margin: 5px 0 10px;
+}
+.sos-fab-painel--mapa .sos-fab-disparar {
+  padding: 12px;
+  font-size: 0.88rem;
+}
+.sos-fab-painel--mapa .sos-fab-cancelar {
+  padding: 9px;
+  font-size: 0.85rem;
+}
+.sos-fab-painel--mapa .sos-fab-ok {
+  font-size: 0.9rem;
+  padding: 12px;
+}
+
+/* Indicador visual de progresso volume menos */
+.sos-volume-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 99998;
+  height: 36px;
+  background: #7f1d1d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.sos-volume-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+  transition: width 0.1s linear;
+}
+.sos-volume-txt {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}

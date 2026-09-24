@@ -1,0 +1,146 @@
+.bns-banner {
+  margin: 0.6rem 0.75rem;
+  border-radius: 12px;
+  padding: 0.85rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.13);
+  animation: bns-entrada 0.3s ease;
+}
+
+@keyframes bns-entrada {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.bns-banner--inativo {
+  background: linear-gradient(135deg, #1a4b8c 0%, #1e6abf 100%);
+  border: 1.5px solid #2a7ad4;
+  color: white;
+}
+
+.bns-banner--bloqueado {
+  background: linear-gradient(135deg, #7c1d1d 0%, #b91c1c 100%);
+  border: 1.5px solid #dc2626;
+  color: white;
+}
+
+.bns-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.bns-icone {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.bns-textos {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bns-titulo {
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.bns-sub {
+  font-size: 0.76rem;
+  opacity: 0.88;
+  line-height: 1.4;
+}
+
+.bns-fechar {
+  background: rgba(255,255,255,0.18);
+  border: none;
+  color: white;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.bns-fechar:hover { background: rgba(255,255,255,0.3); }
+
+.bns-btn-ativar {
+  background: white;
+  color: #1a4b8c;
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  width: 100%;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  min-height: 44px;
+}
+.bns-btn-ativar:hover:not(:disabled) { opacity: 0.92; }
+.bns-btn-ativar:active:not(:disabled) { transform: scale(0.98); }
+.bns-btn-ativar:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.bns-btn-instrucoes {
+  background: rgba(255,255,255,0.15);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  color: white;
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+  min-height: 40px;
+}
+.bns-btn-instrucoes:hover { background: rgba(255,255,255,0.22); }
+
+.bns-instrucoes {
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.bns-instrucoes-titulo {
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0.9;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.bns-passo {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.bns-passo-emoji {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.bns-passo-texto {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  opacity: 0.95;
+}

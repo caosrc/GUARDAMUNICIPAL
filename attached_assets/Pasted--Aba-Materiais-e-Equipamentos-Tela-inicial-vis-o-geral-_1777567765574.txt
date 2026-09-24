@@ -1,0 +1,113 @@
+📦 Aba: Materiais e Equipamentos
+🔹 Tela inicial (visão geral)
+
+Logo que o agente entra:
+
+🔘 Botões principais (grandes e claros)
+📋 Ver Materiais
+🔄 Empréstimos
+➕ Novo Empréstimo
+
+👉 Isso evita confusão e deixa rápido no uso em campo.
+
+📋 1. Lista de Materiais (controle geral)
+🔎 Barra de busca
+Buscar por código ou nome
+📦 Card de cada item (simples e visual)
+
+Cada material aparece tipo:
+
+Código: DC-001
+Nome: Motobomba
+Status: ✅ Disponível / ❌ Emprestado
+📸 Miniatura da foto
+
+👉 Clicou → abre detalhes
+
+📄 Tela de detalhes do material
+🆔 Código
+📦 Nome
+📝 Descrição
+⚠️ Observações
+📸 Galeria de fotos (1 ou mais imagens)
+📊 Status atual (Disponível / Emprestado)
+
+👉 Se estiver emprestado:
+
+Mostrar quem está com o item
+Prazo de devolução
+🔄 2. Controle de Empréstimos
+
+Lista de tudo que está emprestado:
+
+Cada item mostra:
+Nome do material
+Quem pegou
+Órgão/Secretaria
+Data de devolução
+Status:
+🟢 Dentro do prazo
+🔴 Atrasado
+
+👉 Muito útil pra gestão
+
+➕ 3. Novo Empréstimo (formulário)
+
+Aqui entra o que você pediu — organize assim 👇
+
+📝 Formulário de Empréstimo
+🔹 Dados do material
+🔢 Código do material (pode ter busca automática)
+📦 Nome do material (preenchimento automático ajuda muito)
+🔹 Destino
+👤 Responsável (quem vai usar)
+🏢 Secretaria / Órgão
+(pode ser um dropdown: Obras, Saúde, Meio Ambiente, etc.)
+🔹 Prazo
+📅 Prazo (em dias)
+👉 automático:
+mostrar data prevista de devolução
+🔹 Observações
+📝 Campo livre
+Exemplo:
+“Equipamento com leve vazamento”
+“Acompanhar uso”
+🔹 Controle interno
+👷 Agente que emprestou
+(pode puxar automático do login)
+✍️ Assinatura (ESSENCIAL)
+Campo de assinatura digital:
+👉 “Quem pegou emprestado assina na tela”
+
+📱 Pode usar:
+
+dedo na tela mesmo (canvas)
+🔘 Botão final
+✅ Registrar Empréstimo
+🔁 4. Devolução (muito importante)
+
+Quando devolver:
+
+Botão dentro do item:
+🔙 Registrar Devolução
+Campos:
+📅 Data de devolução
+📝 Observação (ex: “Equipamento danificado”)
+📸 Foto na devolução (OPCIONAL e MUITO BOM)
+👷 Quem recebeu
+🚀 IDEIAS QUE DEIXAM SEU APP MUITO FORTE
+🔔 Alertas automáticos
+Item atrasado → notificação
+Item próximo do vencimento
+
+👉 Aqui conecta com o que você perguntou antes (notificação tipo WhatsApp)
+
+🎨 Cores (simples e eficiente)
+Verde → disponível
+Vermelho → emprestado
+Amarelo → próximo do prazo
+📊 Extras (se quiser evoluir depois)
+Histórico por item
+Quantidade disponível
+Relatório por secretaria
+Ranking de uso

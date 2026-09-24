@@ -1,0 +1,87 @@
+2:47:44 PM: Netlify Build                                                 
+2:47:44 PM: ────────────────────────────────────────────────────────────────
+2:47:44 PM: ​
+2:47:44 PM: ❯ Version
+2:47:44 PM:   @netlify/build 35.15.0
+2:47:44 PM: ​
+2:47:44 PM: ❯ Flags
+2:47:44 PM:   accountId: 69d6a3ac24e1c6fe98fb2323
+2:47:44 PM:   baseRelDir: true
+2:47:44 PM:   buildId: 6a2af47110525fd6d6d7412c
+2:47:44 PM:   deployId: 6a2af47110525fd6d6d7412e
+2:47:44 PM: ​
+2:47:44 PM: ❯ Current directory
+2:47:44 PM:   /opt/build/repo
+2:47:44 PM: ​
+2:47:44 PM: ❯ Config file
+2:47:44 PM:   /opt/build/repo/netlify.toml
+2:47:44 PM: ​
+2:47:44 PM: ❯ Context
+2:47:44 PM:   production
+2:47:44 PM: ​
+2:47:44 PM: build.command from netlify.toml                               
+2:47:44 PM: ────────────────────────────────────────────────────────────────
+2:47:44 PM: ​
+2:47:44 PM: $ npm install --no-optional && npm run build
+2:47:44 PM: npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+2:47:44 PM: npm warn config `--include=optional` to include them.
+2:47:44 PM: npm warn config
+2:47:44 PM: npm warn config       Default value does install optional deps unless otherwise omitted.
+2:47:45 PM: npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2:47:45 PM: npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2:48:55 PM: Failed during stage 'building site': Build script returned non-zero exit code: 2 (https://ntl.fyi/exit-code-2)
+2:48:55 PM: npm error Exit handler never called!
+2:48:55 PM: npm error This is an error with npm itself. Please report this error at:
+2:48:55 PM: npm error   <https://github.com/npm/cli/issues&gt;
+2:48:55 PM: npm error A complete log of this run can be found in: /opt/buildhome/.npm/_logs/2026-06-11T17_47_44_528Z-debug-0.log
+2:48:55 PM: > defesacivil@0.0.0 build
+2:48:55 PM: > vite build
+2:48:55 PM: sh: 1: vite: not found
+2:48:55 PM: ​
+2:48:55 PM: "build.command" failed                                        
+2:48:55 PM: ────────────────────────────────────────────────────────────────
+2:48:55 PM: ​
+2:48:55 PM:   Error message
+2:48:55 PM:   Command failed with exit code 127: npm install --no-optional && npm run build (https://ntl.fyi/exit-code-127)
+2:48:55 PM: ​
+2:48:55 PM:   Error location
+2:48:55 PM:   In build.command from netlify.toml:
+2:48:55 PM:   npm install --no-optional && npm run build
+2:48:55 PM: ​
+2:48:55 PM:   Resolved config
+2:48:55 PM:   build:
+2:48:55 PM:     command: npm install --no-optional && npm run build
+2:48:55 PM:     commandOrigin: config
+2:48:55 PM:     environment:
+2:48:55 PM:       - VITE_SUPABASE_ANON_KEY
+2:48:55 PM:       - VITE_SUPABASE_URL
+2:48:55 PM:       - NODE_VERSION
+2:48:55 PM:       - VITE_USE_SUPABASE
+2:48:55 PM:       - VITE_VAPID_PUBLIC_KEY
+2:48:55 PM:     publish: /opt/build/repo/dist
+2:48:55 PM:     publishOrigin: config
+2:48:55 PM:   functionsDirectory: /opt/build/repo/netlify/functions
+2:48:55 PM:   headers:
+2:48:55 PM:     - for: /sw.js
+2:48:55 PM:       values:
+2:48:55 PM:         Cache-Control: public, max-age=0, must-revalidate
+2:48:55 PM:         Service-Worker-Allowed: /
+2:48:55 PM:     - for: /manifest.json
+2:48:55 PM:       values:
+2:48:55 PM:         Cache-Control: public, max-age=0, must-revalidate
+2:48:55 PM:     - for: /assets/*
+      values:
+        Cache-Control: public, max-age=31536000, immutable
+  headersOrigin: config
+  redirects:
+    - force: true
+      from: /api/send-sos-push
+      status: 200
+      to: /.netlify/functions/send-sos-push
+    - from: /*
+      status: 200
+      to: /index.html
+  redirectsOrigin: config
+2:48:55 PM: Build failed due to a user error: Build script returned non-zero exit code: 2
+2:48:55 PM: Failing build: Failed to build site
+2:48:56 PM: Finished processing build request in 2m29.871s

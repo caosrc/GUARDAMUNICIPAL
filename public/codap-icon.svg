@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#1a4b8c"/>
+  <rect x="24" y="24" width="464" height="464" rx="76" fill="#ffffff"/>
+  <text x="256" y="294" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="112" font-weight="800" letter-spacing="-8" fill="#1a4b8c">CODAP</text>
+  <rect x="126" y="334" width="260" height="10" rx="5" fill="#e05f00"/>
+</svg>

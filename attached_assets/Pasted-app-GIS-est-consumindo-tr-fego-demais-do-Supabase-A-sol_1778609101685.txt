@@ -1,0 +1,210 @@
+app GIS está consumindo tráfego demais do Supabase.
+
+A solução correta é:
+
+✅ deixar o Supabase apenas para dados leves
+
+e
+
+✅ mover o peso do mapa para cache/offline/local.
+O QUE VOCÊ PRECISA FAZER
+OBJETIVO
+
+Seu app deve:
+
+✅ funcionar offline
+✅ reduzir egress do Supabase
+✅ abrir rápido
+✅ usar cache
+✅ não baixar tudo toda hora
+✅ continuar funcionando no Netlify
+
+ARQUITETURA IDEAL
+Replit
+ ↓
+Netlify/Cloudflare
+ ↓
+MapLibre
+ ↓
+OpenStreetMap/OpenTopoMap
+ ↓
+Cache Offline
+ ↓
+Supabase
+(apenas dados leves)
+O QUE FICA NO SUPABASE
+SOMENTE:
+
+✅ ocorrências
+✅ usuários
+✅ vistorias
+✅ alertas
+✅ polígonos pequenos
+✅ logs
+
+O QUE NÃO DEVE FICAR
+
+❌ tiles
+❌ imagens grandes
+❌ mapas
+❌ DEM pesado
+❌ GeoJSON gigante
+❌ satélite
+
+PRIMEIRA CORREÇÃO
+PARE DE USAR:
+select('*')
+ISSO BAIXA TUDO.
+
+E explode o Egress.
+
+USE:
+.limit(50)
+EXEMPLO CORRETO
+const { data } = await supabase
+  .from('ocorrencias')
+  .select('id,tipo,latitude,longitude,risco')
+  .limit(100)
+ISSO REDUZ MUITO O TRÁFEGO
+SEGUNDA CORREÇÃO
+NÃO CARREGUE O MAPA TODO
+
+Carregue apenas:
+
+o que está visível.
+EXEMPLO
+
+Buscar:
+
+somente dentro do mapa aberto
+EXEMPLO REAL
+.eq()
+.gte()
+.lte()
+TERCEIRA CORREÇÃO
+IMPLEMENTAR CACHE OFFLINE
+ISSO É MUITO IMPORTANTE
+USE:
+PWA
+NO REPLIT
+
+Instale:
+
+npm install vite-plugin-pwa
+DEPOIS
+
+No:
+
+vite.config.js
+ADICIONE
+import { VitePWA } from 'vite-plugin-pwa'
+
+plugins: [
+  VitePWA({
+    registerType: 'autoUpdate',
+    workbox: {
+      globPatterns: ['**/*.{js,css,html,png,jpg,json}']
+    }
+  })
+]
+RESULTADO
+
+Seu app:
+✅ funciona offline
+✅ usa cache
+✅ reduz downloads
+✅ reduz egress
+
+QUARTA CORREÇÃO
+CACHEAR MAPAS
+NÃO BAIXAR MAPAS DO SUPABASE
+
+Use:
+
+OpenStreetMap direto
+OpenTopoMap direto
+O NAVEGADOR CACHEIA AUTOMATICAMENTE
+QUINTA CORREÇÃO
+SALVAR DADOS LOCALMENTE
+USE:
+IndexedDB
+MELHOR BIBLIOTECA
+
+Instale:
+
+npm install dexie
+EXEMPLO
+import Dexie from 'dexie'
+
+const db = new Dexie('defesaCivil')
+
+db.version(1).stores({
+  ocorrencias: '++id,tipo,data'
+})
+RESULTADO
+
+Ocorrências:
+✅ ficam offline
+✅ sincronizam depois
+✅ reduzem uso do Supabase
+
+SEXTA CORREÇÃO
+SINCRONIZAÇÃO INTELIGENTE
+IDEAL
+OFFLINE:
+
+salva localmente
+
+ONLINE:
+
+sincroniza com Supabase
+
+EXEMPLO
+if (navigator.onLine) {
+   sincronizar()
+}
+ISSO É MUITO PROFISSIONAL
+SÉTIMA CORREÇÃO
+GEOJSON
+NÃO carregue:
+
+GeoJSON gigante.
+
+O CERTO
+
+Dividir:
+
+bairros
+setores
+camadas
+EXEMPLO
+ourobranco-setor1.geojson
+OITAVA CORREÇÃO
+USAR SUPERCLUSTER
+
+Para markers.
+
+INSTALAR
+npm install supercluster
+ISSO REDUZ:
+
+✅ processamento
+✅ tráfego
+✅ lentidão
+
+NONA CORREÇÃO
+NÃO USAR REALTIME EM TUDO
+
+Realtime:
+
+consome muito
+USE REALTIME APENAS PARA:
+
+✅ ocorrências novas
+✅ alertas
+✅ localização viaturas
+
+NÃO USE PARA:
+
+❌ mapas
+❌ camadas GIS

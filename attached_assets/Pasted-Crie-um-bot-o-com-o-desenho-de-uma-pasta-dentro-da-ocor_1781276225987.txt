@@ -1,0 +1,35 @@
+Crie um botão com o desenho de uma pasta, dentro da ocorrência que já foi gerada, ao clicar na ocorrência vai aparecer esse botão da pasta no topo, ao clicar nesse botão vai salvar um pasta para o computador, a pasta vai ter o nome do endereço da ocorrência com o nome da rua e número mais o nome do prórietário mais a Natureza da Ocorrência
+Ex: Ocorrência de Natureza de Vistoria Residencial, Endereço: Rua Artur Tavares, 77, Amália Rodrigues, Proprietário / Morador: EM Maria Auxiliadora Torres
+Ao clicar na ocorrência já feita e no botão da pasta vai salvar uma pasta com o nome Rua Artur Tavares, 77 - EM Maria Auxiliadora Torres - Vistoria Residencial
+Dentro dessa pasta vai ter as fotos que foram tiradas no momento da ocorrência, as fotos vão ter o nome de Foto 1 - Data que foi tirada a foto e horário, ex: Foto 1 - 10-06-2026 - 08h55, as outras fotos serão Foto 2 -10-06-2026 - 08h56, e mais oftos na sequência.
+Dentro da pasta, além das fotos vai ter um documento mais simples do world com o nome Relatório simplificado, sem ter fotos, com as informações da ocorrência, 
+ex: Data da Ocorrência
+02 de junho de 2026
+🕐
+Horário da Ocorrência
+08:45 → 09:20(0h35min de ocorrência)
+☀️ Horário comercial — sem horas de sobreaviso
+🛰️
+Coordenadas GPS
+20° 31' 38,72" S 43° 41' 37,19" O
+📍
+Endereço
+Rua Artur Tavares, 77, Amália Rodrigues
+👤
+Proprietário / Morador
+EM Maria Auxiliadora Torres
+📝
+Situação
+A equipe da Defesa Civil esteve presente junto com a Diretora da Escola Maria Auxiliadora Torres, onde ela mostrou os pontos onde existem tubulações de residências vizinhas a escola que escoam no pátio da escola, também mostrou a quadra de espostes onde existe umidade, a equipe da Defesa Civil já esteve na escola e a diretora relatou o mesmo problema. No mesmo dia a equipe da Defesa Civil esteve na escola do Lado, a do João XXIII, onde o Diretor Marco Aurélio acompanhou e mostrou também as contribuições das casdas vizinhas que são recebidas por uma canaleta na lateral esquerda da escola e desce em grande quantidade para a EM Maria Auxiliadora Torres.
+💡
+Recomendação
+Fazer um estudo sobre a contribuição hidrica e fazer um estudo afim de evitar que todo o escoamente chegue na EM Maria Auxiliadora Torres.
+✅
+Conclusão
+Sem risco iminente
+🪪
+Responsável pelo Registro
+Sócrates
+👷
+Agentes Empenhados
+Sócrates, Cristiane

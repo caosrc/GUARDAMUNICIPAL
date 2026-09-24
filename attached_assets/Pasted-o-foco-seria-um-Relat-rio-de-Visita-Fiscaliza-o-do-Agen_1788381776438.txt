@@ -1,0 +1,440 @@
+o foco seria um Relatório de Visita/Fiscalização do Agente do PROCON.
+
+A ideia é que o agente consiga chegar ao estabelecimento, registrar a visita pelo celular e sair com um relatório completo e rastreável.
+
+1. Identificação da visita
+Cada visita deve gerar um número único:
+
+RELATÓRIO DE VISITA Nº 2026-000157
+
+Data: 02/09/2026
+Hora de início: 14:32
+Hora de término: 15:18
+
+Agente responsável:
+João da Silva
+
+Tipo de visita:
+( ) Rotina
+( ) Fiscalização
+( ) Denúncia
+( ) Operação especial
+( ) Retorno
+( ) Outro
+
+2. Identificação do estabelecimento
+ESTABELECIMENTO
+
+Razão Social:
+Comercial Exemplo LTDA
+
+Nome Fantasia:
+Mercado Exemplo
+
+CNPJ:
+00.000.000/0001-00
+
+Inscrição Estadual:
+123.456.789
+
+Telefone:
+(31) 99999-9999
+
+E-mail:
+contato@empresa.com
+
+Responsável pelo estabelecimento:
+Maria da Silva
+
+Cargo:
+Gerente
+
+3. Endereço
+Eu colocaria o endereço dividido em campos, e não apenas uma caixa de texto:
+
+ENDEREÇO
+
+CEP: 36400-000
+Logradouro: Rua Exemplo
+Número: 150
+Complemento: Loja 02
+Bairro: Centro
+Município: Conselheiro Lafaiete
+UF: MG
+
+E acrescentaria:
+
+Latitude: -20.660...
+Longitude: -43.786...
+Precisão GPS: 8 metros
+
+Assim você consegue posteriormente mostrar no mapa onde a visita aconteceu.
+
+4. Localização da visita
+Esse é um ponto muito interessante para o seu sistema.
+
+Quando o agente clicar em "Iniciar visita", o aplicativo pode solicitar a localização do aparelho:
+
+LOCALIZAÇÃO
+
+📍 Localização capturada
+
+Latitude: -20.660123
+Longitude: -43.786456
+
+Precisão: 6 metros
+
+Data/hora da captura:
+02/09/2026 14:32:18
+
+E guardar a coordenada junto com o relatório.
+
+Isso permite posteriormente visualizar:
+
+              MAPA
+
+       📍 Visita 001
+       
+              📍 Visita 002
+       
+                         📍 Visita 003
+
+Também é interessante guardar a localização no momento da abertura e, se fizer sentido operacionalmente, no encerramento da visita, em vez de tentar rastrear continuamente o agente.
+
+5. Motivo da visita
+O agente precisa informar por que está realizando aquela ação:
+
+MOTIVO DA VISITA
+
+☐ Fiscalização de rotina
+☐ Denúncia
+☐ Reclamação de consumidor
+☐ Operação do PROCON
+☐ Verificação de preços
+☐ Verificação de publicidade
+☐ Produtos vencidos
+☐ Documentação
+☐ Retorno de fiscalização anterior
+☐ Outro
+
+Também colocaria:
+
+Descrição do motivo:
+
+____________________________________
+____________________________________
+
+6. Situação encontrada
+Aqui começa efetivamente o relatório do agente.
+
+CONSTATAÇÕES
+
+O estabelecimento estava em funcionamento?
+
+( X ) Sim
+( ) Não
+
+Havia responsável presente?
+
+( X ) Sim
+( ) Não
+
+Nome do responsável encontrado:
+Maria da Silva
+
+Cargo:
+Gerente
+
+Depois, categorias de fiscalização:
+
+ITENS VERIFICADOS
+
+☐ Preços dos produtos
+☐ Prazo de validade
+☐ Informação ao consumidor
+☐ Publicidade
+☐ Forma de pagamento
+☐ Produtos expostos
+☐ Cartazes/comunicação visual
+☐ Nota fiscal
+☐ Documentação
+☐ Código de Defesa do Consumidor
+☐ Outros
+
+7. Irregularidades
+Essa parte merece uma estrutura própria.
+
+Em vez de o agente escrever tudo em um campo enorme, permita adicionar várias ocorrências:
+
+IRREGULARIDADE Nº 01
+
+Categoria:
+Preço
+
+Descrição:
+Produto exposto sem informação clara de preço.
+
+Produto:
+Arroz Tipo 1 – 5kg
+
+Marca:
+Exemplo
+
+Preço encontrado:
+R$ 29,90
+
+Observação:
+________________________________
+
+E:
+
+IRREGULARIDADE Nº 02
+
+Categoria:
+Validade
+
+Descrição:
+Produto encontrado com prazo de validade expirado.
+
+Produto:
+Iogurte
+
+Quantidade:
+12 unidades
+
+Lote:
+ABC123
+
+Assim uma visita pode ter 0, 1 ou 50 irregularidades, sem bagunçar o banco de dados.
+
+8. Fotos e documentos
+Eu colocaria uma área específica:
+
+Evidências
+📷 Fotos
+
+[ Foto 01 ]
+[ Foto 02 ]
+[ Foto 03 ]
+[ Foto 04 ]
+
+📄 Documentos
+
+[ documento.pdf ]
+[ nota-fiscal.pdf ]
+
+Para cada foto, o sistema pode guardar:
+
+Foto:
+IMG_20260902_143522.jpg
+
+Data/hora:
+02/09/2026 14:35:22
+
+Localização:
+Latitude / Longitude
+
+Descrição:
+Produto sem identificação de preço
+
+Isso é muito melhor do que simplesmente jogar todas as fotos dentro do relatório.
+
+9. Manifestação do estabelecimento
+Também é importante registrar o que o responsável pelo estabelecimento declarou:
+
+MANIFESTAÇÃO DO RESPONSÁVEL
+
+O responsável foi informado sobre as constatações?
+
+( X ) Sim
+( ) Não
+
+Manifestação:
+
+"O estabelecimento informou que os preços serão
+regularizados imediatamente."
+
+Observações do agente:
+
+____________________________________
+
+10. Resultado da visita
+No final:
+
+RESULTADO
+
+☐ Sem irregularidades constatadas
+☐ Irregularidade constatada
+☐ Orientação realizada
+☐ Estabelecimento notificado
+☐ Prazo para regularização
+☐ Auto de infração
+☐ Apreensão
+☐ Retorno necessário
+☐ Encaminhamento para outro setor
+
+Se houver prazo:
+
+Prazo para regularização:
+10 dias
+
+Data limite:
+12/09/2026
+
+Necessita nova visita?
+(X) Sim
+( ) Não
+
+11. Assinaturas
+No encerramento:
+
+RESPONSÁVEL PELO ESTABELECIMENTO
+
+Nome: Maria da Silva
+
+[ ASSINATURA DIGITAL ]
+
+☐ Responsável recusou-se a assinar
+
+E:
+
+AGENTE
+
+João da Silva
+
+[ ASSINATURA DIGITAL ]
+
+Data/hora:
+02/09/2026 15:18
+
+12. Relatório final
+O sistema pode gerar automaticamente um PDF com uma estrutura semelhante a:
+
+--------------------------------------------------
+              PROCON REGIONAL / CODAP
+             RELATÓRIO DE VISITA
+--------------------------------------------------
+
+Relatório nº: 2026-000157
+
+DATA: 02/09/2026
+HORÁRIO: 14:32 – 15:18
+
+AGENTE:
+João da Silva
+
+--------------------------------------------------
+ESTABELECIMENTO
+--------------------------------------------------
+
+Razão Social: Comercial Exemplo LTDA
+Nome Fantasia: Mercado Exemplo
+CNPJ: 00.000.000/0001-00
+
+Responsável:
+Maria da Silva – Gerente
+
+--------------------------------------------------
+ENDEREÇO
+--------------------------------------------------
+
+Rua Exemplo, 150 – Loja 02
+Centro
+Conselheiro Lafaiete – MG
+CEP 36400-000
+
+LOCALIZAÇÃO:
+Latitude: -20.660123
+Longitude: -43.786456
+
+[ MAPA ]
+
+--------------------------------------------------
+MOTIVO DA VISITA
+--------------------------------------------------
+
+Fiscalização de rotina
+
+--------------------------------------------------
+CONSTATAÇÕES
+--------------------------------------------------
+
+[descritivo]
+
+--------------------------------------------------
+IRREGULARIDADES
+--------------------------------------------------
+
+01 – Preço
+Descrição: Produto sem informação clara de preço.
+
+02 – Validade
+Descrição: Produtos encontrados fora do prazo.
+
+--------------------------------------------------
+EVIDÊNCIAS
+--------------------------------------------------
+
+[Foto 01] [Foto 02] [Foto 03]
+
+--------------------------------------------------
+MANIFESTAÇÃO DO ESTABELECIMENTO
+--------------------------------------------------
+
+[texto]
+
+--------------------------------------------------
+RESULTADO
+--------------------------------------------------
+
+☒ Irregularidade constatada
+☒ Estabelecimento notificado
+☒ Retorno necessário
+
+Prazo: 10 dias
+
+--------------------------------------------------
+ASSINATURAS
+--------------------------------------------------
+
+AGENTE                    RESPONSÁVEL
+
+_________________         _________________
+
+João da Silva             Maria da Silva
+
+E no seu sistema eu faria estas telas
+DASHBOARD
+│
+├── Nova Visita
+│
+├── Minhas Visitas
+│
+├── Visitas da Equipe
+│
+├── Estabelecimentos
+│
+├── Irregularidades
+│
+├── Retornos Pendentes
+│
+├── Mapa de Visitas
+│
+├── Relatórios
+│
+└── Administração
+
+E o botão principal do agente seria simplesmente:
+
+➕ NOVA VISITA
+
+→ localização automática
+→ estabelecimento
+→ motivo
+→ constatações
+→ irregularidades
+→ fotos
+→ manifestação
+→ resultado
+→ assinatura
+→ FINALIZAR RELATÓRIO

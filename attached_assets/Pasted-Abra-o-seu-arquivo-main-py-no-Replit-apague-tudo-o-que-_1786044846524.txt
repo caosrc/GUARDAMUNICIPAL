@@ -1,0 +1,52 @@
+Abra o seu arquivo main.py no Replit, apague tudo o que está nele e cole o código completo abaixo. Eu já deixei o ID do seu projeto configurado corretamente na linha 5:pythonimport ee
+import datetime
+
+# 1. Seu projeto de estudante do Google Cloud cadastrado
+ID_DO_SEU PROJETO = "studio-6342191983-7ea1e"
+
+try:
+    # Inicializa diretamente apontando para o seu projeto de estudante
+    ee.Initialize(project=ID_DO_SEU_PROJETO)
+    print("🚀 Sucesso! Seu aplicativo está conectado ao Google Earth Engine.")
+except Exception as e:
+    print(f"❌ Erro de credenciais: {e}")
+    print("\nExecute no terminal para validar o login: earthengine authenticate --auth_mode=notebook")
+    exit()
+
+# 2. Configura datas automáticas em tempo real (Últimas 48 horas)
+hoje = datetime.date.today()
+dois_dias_atras = hoje - datetime.timedelta(days=2)
+data_fim = hoje.strftime('%Y-%m-%d')
+data_inicio = dois_dias_atras.strftime('%Y-%m-%d')
+
+print(f"📡 Buscando focos de incêndio ativos entre {data_inicio} e {data_fim}...")
+
+# 3. Região de Ouro Branco - MG (Raio de 50km)
+regiao = ee.Geometry.Point([-43.69, -20.52]).buffer(50000)
+
+# 4. Coleta dados de focos de calor do satélite MODIS (NASA)
+focos_incendio = (ee.ImageCollection('MODIS/006/MOD14A1')
+                  .filterDate(data_inicio, data_fim) 
+                  .filterBounds(regiao))
+
+if focos_incendio.size().getInfo() == 0:
+    print("ℹ️ Nenhuma imagem de satélite processada para a região nas últimas 48 horas.")
+else:
+    ultima_imagem = focos_incendio.mosaic()
+    mascara_fogo = ultima_imagem.select('FireMask').gte(7) # Filtra apenas fogo confirmado
+
+    pontos_fogo = mascara_fogo.reduceToVectors(
+        geometry=regiao,
+        scale=1000,
+        geometryType='point',
+        labelProperty='fogo'
+    )
+
+    resultados = pontos_fogo.getInfo()
+    print("\n--- 🔥 RELATÓRIO DE MONITORAMENTO DE INCÊNDIOS ---")
+    
+    if len(resultados.get('features', [])) == 0:
+        print("✅ Excelente! Nenhum foco de incêndio ativo detectado em Ouro Branco no momento.")
+    else:
+        print(f"⚠️ Atenção: Detectados {len(resultados['features'])} possíveis focos de calor.")
+        print(resultados)

@@ -1,0 +1,3075 @@
+/* ── Wrapper ────────────────────────────────────────────────── */
+.escala-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem 2rem;
+}
+
+/* ── Navegação de mês ───────────────────────────────────────── */
+.escala-nav-mes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.35rem 0.6rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.escala-nav-btn {
+  background: #f0f4f8;
+  border: none;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  font-size: 1.3rem;
+  color: #1a4b8c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+.escala-nav-btn:active { background: #dbeafe; }
+
+.escala-nav-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a202c;
+  letter-spacing: 0.01em;
+}
+
+/* ── Botão editar (Moisés) ──────────────────────────────────── */
+.escala-btn-editar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  border: 2px solid #2563eb;
+  background: #fff;
+  color: #2563eb;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: all 0.18s;
+}
+.escala-btn-editar.ativo {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+.escala-btn-editar:active { opacity: 0.85; }
+
+.escala-acoes-moises {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.escala-btn-exportar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  border: 2px solid #047857;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.escala-btn-exportar:hover { background: #d1fae5; }
+.escala-btn-exportar:active { opacity: 0.85; }
+
+.escala-edit-aviso {
+  background: #fef9c3;
+  border: 1px solid #fde047;
+  border-radius: 10px;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.8rem;
+  color: #713f12;
+  text-align: center;
+}
+
+/* ── Bloco de calendário ────────────────────────────────────── */
+.escala-calendario-bloco {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.09);
+}
+
+.escala-bloco-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.escala-bloco-adm .escala-bloco-header {
+  background: linear-gradient(90deg, #1a4b8c 0%, #2563eb 100%);
+  color: #fff;
+}
+
+.escala-bloco-sobreaviso .escala-bloco-header {
+  background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%);
+  color: #fff;
+}
+
+.escala-bloco-icone { font-size: 1.1rem; }
+
+/* ── Grade do calendário ADM ────────────────────────────────── */
+.escala-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: #e5e7eb;
+  border-top: 1px solid #e5e7eb;
+}
+
+.escala-cal-diahdr {
+  background: #f8fafc;
+  text-align: center;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: #64748b;
+  padding: 0.2rem 0;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.escala-cal-vazio {
+  background: #f8fafc;
+  min-height: 40px;
+}
+
+.escala-cal-dia {
+  background: #fff;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.1rem 0.05rem 0.08rem;
+  min-height: 40px;
+  gap: 0.05rem;
+  cursor: default;
+  transition: background 0.12s;
+  position: relative;
+}
+
+.escala-cal-dia.editavel {
+  cursor: pointer;
+}
+.escala-cal-dia.editavel:active { background: #f0f4f8; }
+
+.escala-cal-num {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1;
+}
+
+.escala-cal-dia.hoje .escala-cal-num {
+  background: #2563eb;
+  color: #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.58rem;
+}
+
+.escala-cal-dia.tem-agente { background: #f8faff; }
+.escala-cal-dia.tem-folga { background: #f0fdf4; }
+
+.escala-bloco-adm .escala-cal-dia,
+.escala-bloco-adm .escala-cal-vazio {
+  min-height: 40px;
+}
+
+/* ── Calendário Unificado (Sobreaviso + Folga) ─────────────── */
+.escala-bloco-unificado {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.escala-bloco-unificado .escala-cal-grid {
+  gap: 4px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-top: none;
+}
+
+.escala-bloco-unificado .escala-cal-diahdr {
+  background: transparent;
+  font-size: 0.7rem;
+  padding: 0.4rem 0;
+}
+
+.escala-bloco-unificado .uni-vazio {
+  background: transparent;
+  min-height: 86px;
+}
+
+.escala-bloco-unificado .uni-dia {
+  background: #fff;
+  min-height: 86px;
+  padding: 0.3rem 0.25rem;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.escala-bloco-unificado .uni-dia.editavel:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.escala-bloco-unificado .uni-dia .escala-cal-num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  align-self: flex-start;
+  color: #1e293b;
+}
+
+.escala-bloco-unificado .uni-dia.hoje {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.escala-bloco-unificado .uni-dia.hoje .escala-cal-num {
+  background: #2563eb;
+  color: #fff;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+
+.escala-bloco-unificado .uni-dia.feriado-fixo,
+.escala-bloco-unificado .uni-dia.feriado-custom {
+  background: #fef3c7;
+  border-color: #fbbf24;
+}
+
+.uni-secao {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  width: 100%;
+  text-align: left;
+}
+
+.uni-sobreaviso {
+  background: #ede9fe;
+  border-left: 3px solid #7c3aed;
+}
+
+.uni-folga {
+  background: #dcfce7;
+  border-left: 3px solid #16a34a;
+}
+
+.uni-secao-label {
+  font-size: 0.4rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #475569;
+  line-height: 1.05;
+}
+
+.uni-secao-nome {
+  font-size: 0.48rem;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 480px) {
+  .escala-bloco-unificado .uni-dia,
+  .escala-bloco-unificado .uni-vazio {
+    min-height: 78px;
+  }
+  .uni-secao-nome { font-size: 0.44rem; }
+  .uni-secao-label { font-size: 0.38rem; }
+}
+
+.escala-cal-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1px;
+  max-width: 28px;
+}
+
+.escala-cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.escala-cal-mais {
+  font-size: 0.52rem;
+  color: #6b7280;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Nomes de agentes trabalhando nas células de dia — Calendário ADM */
+.escala-adm-nomes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin-top: 1px;
+  width: 100%;
+}
+
+.escala-adm-nome {
+  font-size: 0.43rem;
+  font-weight: 700;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  letter-spacing: -0.04em;
+}
+
+.escala-adm-folgas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin-top: 2px;
+  width: 100%;
+}
+
+.escala-adm-folga-label {
+  font-size: 0.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #166534;
+}
+
+.escala-adm-folga-nome {
+  font-size: 0.48rem;
+  font-weight: 800;
+  line-height: 1.08;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  letter-spacing: -0.03em;
+}
+
+/* Células de cauda (após o último dia) — agentes de folga */
+.escala-cal-folga-cauda {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 2px;
+  background: #f0fdf4;
+  border: 1px dashed #86efac;
+  border-radius: 6px;
+  min-height: 52px;
+}
+
+.escala-cal-folga-cauda-nome {
+  font-size: 0.48rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* ── Calendário Sobreaviso — células com nomes ──────────────── */
+.sb-vazio {
+  min-height: 72px;
+}
+
+.sb-dia {
+  min-height: 72px;
+  padding: 0.3rem 0.15rem 0.25rem;
+  gap: 0.1rem;
+  border-bottom: 2px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.sb-dia.sb-semana-atual {
+  box-shadow: inset 0 0 0 2px rgba(124,58,237,0.25);
+}
+
+.sb-nomes-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  width: 100%;
+}
+
+.sb-nome-dia {
+  font-size: 0.56rem;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 1px;
+}
+
+.sb-folga-badge {
+  font-size: 0.48rem;
+  color: #16a34a;
+  background: #dcfce7;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 700;
+}
+
+/* ── Painel de Escalas Semanais ─────────────────────────────── */
+.sb-semanas-painel {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.09);
+}
+
+.sb-semanas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.9rem;
+  background: linear-gradient(90deg, #5b21b6 0%, #7c3aed 100%);
+  color: #fff;
+}
+
+.sb-semanas-titulo {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.sb-semanas-subtitulo {
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+
+.sb-semanas-lista {
+  display: flex;
+  flex-direction: column;
+}
+
+.sb-semana-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid #f0f4f8;
+  background: #fff;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid #f0f4f8;
+}
+.sb-semana-row:last-child { border-bottom: none; }
+.sb-semana-row:active { background: #f5f3ff; }
+
+.sb-semana-row.atual {
+  background: #faf5ff;
+}
+
+.sb-semana-row.passada {
+  opacity: 0.65;
+}
+
+.sb-semana-periodo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.sb-semana-datas {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.sb-semana-tag-atual {
+  font-size: 0.62rem;
+  color: #7c3aed;
+  font-weight: 700;
+  background: #f5f3ff;
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  display: inline-block;
+}
+
+.sb-semana-direita {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.sb-semana-agente-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 20px;
+  border: 1.5px solid;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.sb-semana-agente-cor {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sb-semana-agente-nome {
+  white-space: nowrap;
+}
+
+.sb-semana-folga-hint {
+  font-size: 0.72rem;
+}
+
+.sb-semana-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  justify-content: flex-end;
+  max-width: 180px;
+}
+
+.sb-semana-vago {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.sb-semana-editar {
+  font-size: 0.8rem;
+}
+
+.sb-semana-legenda-bh {
+  padding: 0.55rem 0.9rem;
+  font-size: 0.74rem;
+  color: #6b7280;
+  background: #faf5ff;
+  border-top: 1px solid #ede9fe;
+}
+
+/* ── Info box no modal de semana ────────────────────────────── */
+.sb-semana-info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  background: #ede9fe;
+  border-radius: 9px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  color: #5b21b6;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ── Contador e check do modal semanal ──────────────────────── */
+.sb-modal-counter {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #7c3aed;
+  background: #f5f3ff;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  text-align: center;
+}
+
+.sb-modal-check {
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-left: auto;
+}
+
+/* ── Tag de folga no modal ──────────────────────────────────── */
+.escala-modal-folga-tag {
+  font-size: 0.72rem;
+  color: #166534;
+  background: #dcfce7;
+  border-radius: 5px;
+  padding: 0.1rem 0.35rem;
+  font-weight: 600;
+}
+
+/* ── Legenda ────────────────────────────────────────────────── */
+.escala-legenda {
+  background: #fff;
+  border-radius: 14px;
+  padding: 0.85rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+}
+
+.escala-legenda-titulo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6b7280;
+  display: block;
+  margin-bottom: 0.6rem;
+}
+
+.escala-legenda-regra {
+  margin: -0.25rem 0 0.75rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: #64748b;
+}
+
+.escala-legenda-lista {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.45rem 0.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.escala-legenda-item {
+  display: grid;
+  grid-template-columns: 11px minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 0.35rem;
+  row-gap: 0.08rem;
+}
+
+.escala-legenda-cor {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  grid-row: 1 / span 2;
+}
+
+.escala-legenda-nome {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 0.76rem;
+  color: #374151;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.escala-legenda-horario {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 0.66rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.escala-legenda-edit-icone {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  margin-left: 2px;
+}
+
+.escala-legenda-ferias-bloco {
+  border-top: 1px solid #f0f4f8;
+  margin-top: 0.55rem;
+  padding-top: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.escala-legenda-ferias-titulo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #92400e;
+  margin-bottom: 0.1rem;
+}
+
+.escala-legenda-ferias-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.escala-legenda-ferias-nome {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  min-width: 72px;
+  flex-shrink: 0;
+}
+
+.escala-legenda-ferias-periodos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.escala-legenda-ferias-periodo {
+  font-size: 0.72rem;
+  color: #92400e;
+  background: #fef3c7;
+  border-radius: 5px;
+  padding: 0.1rem 0.4rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Painel de férias ───────────────────────────────────────── */
+.escala-ferias-painel {
+  background: #fff;
+  border-radius: 14px;
+  padding: 0.9rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.escala-ferias-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.escala-ferias-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.escala-ferias-select {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 9px;
+  border: 1.5px solid #d1d5db;
+  font-size: 0.88rem;
+  background: #f8fafc;
+  color: #1a202c;
+  appearance: auto;
+}
+
+.escala-ferias-datas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.escala-ferias-data-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.escala-ferias-data-campo label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.escala-ferias-data-campo input[type="date"] {
+  padding: 0.5rem 0.6rem;
+  border-radius: 9px;
+  border: 1.5px solid #d1d5db;
+  font-size: 0.85rem;
+  background: #f8fafc;
+  color: #1a202c;
+  width: 100%;
+}
+
+.escala-ferias-erro {
+  font-size: 0.78rem;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.escala-ferias-add {
+  padding: 0.65rem;
+  border-radius: 10px;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+.escala-ferias-add:active { background: #1d4ed8; }
+
+.bh-salvar-btn {
+  background: linear-gradient(135deg, #16a34a, #15803d) !important;
+  font-size: 0.95rem !important;
+  padding: 0.85rem !important;
+  letter-spacing: 0.01em;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
+}
+.bh-salvar-btn:active { background: #15803d !important; transform: scale(0.98); }
+.bh-salvar-btn:disabled {
+  background: #94a3b8 !important;
+  opacity: 0.85;
+  box-shadow: none;
+}
+
+.bh-salvar-feedback {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: center;
+  animation: bh-feedback-in 0.25s ease-out;
+}
+.bh-salvar-feedback--ok {
+  background: #dcfce7;
+  color: #14532d;
+  border: 1px solid #86efac;
+}
+.bh-salvar-feedback--erro {
+  background: #fef3c7;
+  color: #78350f;
+  border: 1px solid #fcd34d;
+}
+@keyframes bh-feedback-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.escala-ferias-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border-top: 1px solid #f0f4f8;
+  padding-top: 0.6rem;
+}
+
+.escala-ferias-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f8fafc;
+  border-radius: 9px;
+  padding: 0.45rem 0.6rem;
+}
+
+.escala-ferias-cor {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.escala-ferias-nome {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.escala-ferias-periodo {
+  font-size: 0.78rem;
+  color: #6b7280;
+  flex: 1;
+}
+
+.escala-ferias-remover {
+  background: none;
+  border: none;
+  color: #dc2626;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.3rem;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.escala-ferias-remover:active { background: #fee2e2; }
+
+.escala-ferias-vazio {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  text-align: center;
+  padding: 0.25rem 0;
+}
+
+/* ── Modal de seleção ───────────────────────────────────────── */
+.escala-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 500;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.escala-modal {
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 1.2rem 1rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp 0.22s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.escala-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.escala-modal-titulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.escala-modal-fechar {
+  background: #f0f4f8;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 0.85rem;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.escala-modal-sub {
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin-top: -0.25rem;
+}
+
+.escala-modal-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.escala-modal-agente {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  border: 2px solid #e5e7eb;
+  background: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #374151;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.escala-modal-agente.selecionado { color: #fff; }
+
+.escala-modal-agente.em-ferias {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.escala-modal-agente-nome { flex: 1; }
+
+.escala-modal-ferias-tag {
+  font-size: 0.72rem;
+  color: #92400e;
+  background: #fef3c7;
+  border-radius: 5px;
+  padding: 0.1rem 0.35rem;
+  font-weight: 600;
+}
+
+.escala-modal-iniciais {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.escala-modal-acoes {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+.escala-modal-limpar {
+  flex: 1;
+  padding: 0.7rem;
+  border-radius: 10px;
+  border: 2px solid #e5e7eb;
+  background: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.escala-modal-salvar {
+  flex: 2;
+  padding: 0.7rem;
+  border-radius: 10px;
+  border: none;
+  background: #7c3aed;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+}
+.escala-modal-salvar:active { background: #6d28d9; }
+.escala-modal-salvar:disabled { background: #c4b5fd; cursor: not-allowed; }
+
+/* ── Banco de Horas: card do agente ────────────────────────── */
+.bh-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 0.9rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.09);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.bh-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.bh-card-iniciais {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bh-card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.bh-card-nome {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.bh-card-subtitulo {
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+
+.bh-card-total {
+  display: flex;
+  align-items: baseline;
+  gap: 0.15rem;
+}
+
+.bh-card-horas {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #7c3aed;
+  line-height: 1;
+}
+
+.bh-card-h {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.bh-aviso-ativo {
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 9px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: #166534;
+  font-weight: 600;
+}
+
+.bh-aviso-folga {
+  background: #ede9fe;
+  border: 1.5px solid #c4b5fd;
+  border-radius: 9px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: #5b21b6;
+  font-weight: 600;
+}
+
+.bh-card-meses {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-top: 1px solid #f0f4f8;
+  padding-top: 0.5rem;
+}
+
+.bh-card-mes-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.bh-card-mes-label { color: #374151; }
+
+.bh-card-mes-h {
+  font-weight: 700;
+  color: #7c3aed;
+}
+
+.bh-card-vazio {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  text-align: center;
+}
+
+/* ── Banco de Horas: lista de semanas ───────────────────────── */
+.bh-semanas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border-top: 1px solid #f0f4f8;
+  padding-top: 0.5rem;
+}
+
+.bh-semana-bloco {
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.bh-semana-header {
+  width: 100%;
+  background: #f8fafc;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bh-semana-header.aberta {
+  background: #ede9fe;
+  border-bottom: 1px solid #c4b5fd;
+}
+
+.bh-semana-titulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #374151;
+  flex: 1;
+}
+
+.bh-semana-resumo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+}
+
+.bh-semana-base { color: #6b7280; }
+
+.bh-semana-extra {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.bh-semana-total {
+  color: #7c3aed;
+  font-weight: 800;
+}
+
+.bh-semana-chevron {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  margin-left: 0.25rem;
+}
+
+/* ── Banco de Horas: dias de cada semana ─────────────────────── */
+.bh-semana-dias {
+  background: #fff;
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.bh-semana-instrucao {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin: 0 0 0.25rem 0;
+  line-height: 1.3;
+}
+
+.bh-dia-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.bh-dia-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bh-dia-justif-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+}
+
+.bh-dia-justif-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.bh-dia-justif-obrig {
+  color: #dc2626;
+}
+
+.bh-dia-justif-input {
+  width: 100%;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.8rem;
+  color: #374151;
+  background: #fff;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.bh-dia-justif-input:focus {
+  border-color: #7c3aed;
+}
+
+.bh-dia-justif-vazio {
+  border-color: #f87171;
+}
+
+.bh-dia-justif-aviso {
+  font-size: 0.7rem;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.bh-dia-row.feriado-dom {
+  background: #fef9c3;
+}
+
+.bh-dia-row.sabado {
+  background: #eff6ff;
+}
+
+.bh-dia-info {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 110px;
+  flex-shrink: 0;
+}
+
+.bh-dia-nome {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #374151;
+  width: 30px;
+}
+
+.bh-dia-data {
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+
+.bh-dia-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.bh-dia-badge.mult15 {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.bh-dia-badge.sabado {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.bh-dia-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.bh-dia-input {
+  width: 56px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.bh-dia-input:focus {
+  border-color: #7c3aed;
+}
+
+.bh-dia-input-h {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.bh-dia-calc {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #7c3aed;
+  margin-left: auto;
+}
+
+/* ── Banco de Horas: painel Moisés ─────────────────────────── */
+.bh-moises-painel {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.09);
+  overflow: hidden;
+}
+
+.bh-moises-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.9rem;
+  background: linear-gradient(90deg, #4c1d95 0%, #7c3aed 100%);
+  color: #fff;
+}
+
+.bh-moises-titulo {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.bh-moises-total {
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.2);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+}
+
+.bh-moises-lista {
+  display: flex;
+  flex-direction: column;
+}
+
+.bh-moises-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid #f0f4f8;
+}
+.bh-moises-row:last-child { border-bottom: none; }
+
+.bh-moises-rank {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #9ca3af;
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.bh-moises-cor {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.bh-moises-nome {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.bh-moises-direita {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.bh-moises-badge-ativo {
+  font-size: 0.75rem;
+}
+
+.bh-moises-badge-folga {
+  font-size: 0.75rem;
+}
+
+.bh-moises-horas-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.bh-moises-horas-edit {
+  background: none;
+  border: 1px dashed transparent;
+  border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.bh-moises-horas-edit:hover {
+  background: #faf5ff;
+  border-color: #c4b5fd;
+}
+.bh-moises-horas-edit:active {
+  transform: scale(0.97);
+}
+
+.bh-moises-ajuste-badge {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 1px 6px;
+  border-radius: 8px;
+  vertical-align: middle;
+}
+
+/* ── Modal de edição manual do banco de horas (Moisés) ───────── */
+.bh-edit-modal {
+  max-width: 380px;
+}
+.bh-edit-cor {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.bh-edit-info {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+  margin: 0.6rem 0 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.bh-edit-info-linha {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+.bh-edit-info-linha strong { color: #1a202c; font-weight: 700; }
+.bh-edit-info-linha strong.positivo { color: #15803d; }
+.bh-edit-info-linha strong.negativo { color: #b91c1c; }
+
+.bh-edit-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+.bh-edit-input {
+  border: 2px solid #c4b5fd;
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #5b21b6;
+  text-align: center;
+  outline: none;
+  transition: border 0.15s;
+}
+.bh-edit-input:focus { border-color: #7c3aed; }
+
+.bh-edit-info-linha--destaque {
+  border-top: 1px dashed #d1d5db;
+  padding-top: 0.3rem;
+  margin-top: 0.1rem;
+  color: #3730a3;
+}
+.bh-edit-info-linha--destaque span { color: #3730a3; font-weight: 600; }
+
+.bh-edit-info-linha--total {
+  border-top: 2px solid #e5e7eb;
+  padding-top: 0.35rem;
+  margin-top: 0.1rem;
+  font-size: 0.85rem;
+}
+.bh-edit-info-linha--total span { font-weight: 700; color: #111827; }
+
+.bh-edit-label--justif {
+  margin-top: 0.1rem;
+}
+
+.bh-edit-justif {
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.78rem;
+  font-family: inherit;
+  color: #374151;
+  resize: vertical;
+  outline: none;
+  transition: border 0.15s;
+  line-height: 1.4;
+}
+.bh-edit-justif:focus { border-color: #7c3aed; }
+.bh-edit-justif::placeholder { color: #9ca3af; }
+
+.bh-edit-salvar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bh-edit-dica {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin: 0 0 0.7rem;
+  line-height: 1.35;
+  font-style: italic;
+}
+
+.bh-edit-acoes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.bh-edit-acoes-direita {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+.bh-edit-zerar,
+.bh-edit-cancelar,
+.bh-edit-salvar {
+  border: none;
+  border-radius: 10px;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.bh-edit-zerar {
+  background: #fef3c7;
+  color: #92400e;
+}
+.bh-edit-zerar:hover { background: #fde68a; }
+.bh-edit-cancelar {
+  background: #f3f4f6;
+  color: #374151;
+}
+.bh-edit-cancelar:hover { background: #e5e7eb; }
+.bh-edit-salvar {
+  background: #7c3aed;
+  color: white;
+}
+.bh-edit-salvar:hover { background: #6d28d9; }
+
+.bh-moises-h {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #7c3aed;
+  line-height: 1;
+}
+
+.bh-moises-semanas {
+  font-size: 0.62rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.bh-moises-rodape {
+  padding: 0.5rem 0.9rem;
+  font-size: 0.72rem;
+  color: #6b7280;
+  background: #faf5ff;
+  border-top: 1px solid #ede9fe;
+  text-align: center;
+}
+
+/* ── Modal de Detalhes do Banco de Horas ── */
+.bh-detalhe-modal {
+  max-width: 520px;
+  width: 95vw;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.bh-detalhe-total-geral {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 1rem;
+  background: #f5f3ff;
+  border-bottom: 1px solid #ede9fe;
+  gap: 1rem;
+}
+.bh-detalhe-total-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+.bh-detalhe-total-valor {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #5b21b6;
+}
+
+.bh-detalhe-mes-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 1rem;
+  background: #faf5ff;
+  border-bottom: 1px solid #ede9fe;
+}
+.bh-detalhe-mes-btn {
+  background: none;
+  border: 1.5px solid #c4b5fd;
+  border-radius: 8px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #7c3aed;
+  transition: background 0.15s;
+}
+.bh-detalhe-mes-btn:hover { background: #ede9fe; }
+.bh-detalhe-mes-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #374151;
+  min-width: 140px;
+  text-align: center;
+}
+
+.bh-detalhe-corpo {
+  overflow-y: visible;
+  flex: none;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.bh-detalhe-secao {
+  background: #f9fafb;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+.bh-detalhe-secao-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.75rem;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+.bh-detalhe-secao-titulo {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #374151;
+}
+.bh-detalhe-secao-sub {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #5b21b6;
+}
+
+.bh-detalhe-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.bh-detalhe-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+  gap: 0.5rem;
+}
+.bh-detalhe-item:last-child { border-bottom: none; }
+.bh-detalhe-item--futuro { opacity: 0.55; }
+.bh-detalhe-item--oc { background: #fefce8; }
+.bh-detalhe-item--desc { background: #fef2f2; }
+
+.bh-detalhe-item-esq {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+  min-width: 0;
+}
+.bh-detalhe-item-dir {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+.bh-detalhe-item-data {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #374151;
+}
+.bh-detalhe-item-desc {
+  font-size: 0.68rem;
+  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+.bh-detalhe-item-val {
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.bh-detalhe-item-mult-tag {
+  font-size: 0.65rem;
+  background: #fde68a;
+  color: #92400e;
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  font-weight: 700;
+  display: inline-block;
+  margin-top: 0.1rem;
+  width: fit-content;
+}
+.bh-detalhe-item-bruto {
+  font-size: 0.65rem;
+  color: #9ca3af;
+}
+.bh-detalhe-justif-linha {
+  display: block;
+  font-size: 0.67rem;
+  color: #4b5563;
+}
+
+.bh-resumo-categorias {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  margin: 0 0.75rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.bh-resumo-categ-titulo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.75rem 0.35rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f1f5f9;
+}
+
+.bh-resumo-categ-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.bh-resumo-categ-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.38rem 0.75rem;
+  font-size: 0.78rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+.bh-resumo-categ-item:last-child { border-bottom: none; }
+
+.bh-resumo-categ-icone {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  width: 1.2rem;
+  text-align: center;
+}
+
+.bh-resumo-categ-nome {
+  flex: 1;
+  color: #374151;
+  font-size: 0.77rem;
+}
+
+.bh-resumo-categ-valor {
+  font-weight: 700;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 3rem;
+  text-align: right;
+}
+
+.bh-detalhe-saldo-anterior {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 7px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.bh-detalhe-subtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.75rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #166534;
+}
+
+.bh-detalhe-ajuste-wrap {
+  background: #fefce8;
+  border-top: 1px solid #fde68a;
+  flex-shrink: 0;
+}
+
+.bh-detalhe-ajuste {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.bh-detalhe-ajuste-direita {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.bh-ajuste-toggle {
+  background: none;
+  border: 1.5px solid #d97706;
+  border-radius: 50%;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #92400e;
+  line-height: 1;
+  padding: 0;
+  transition: transform 0.2s, background 0.15s;
+  flex-shrink: 0;
+}
+.bh-ajuste-toggle:hover { background: #fde68a; }
+.bh-ajuste-toggle--aberto { transform: rotate(180deg); }
+
+.bh-ajuste-historico {
+  border-top: 1px dashed #fcd34d;
+  padding: 0.35rem 0.85rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.bh-ajuste-historico-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 0.7rem;
+  color: #78350f;
+  padding: 0.25rem 0;
+  border-bottom: 1px dotted #fde68a;
+  gap: 0.5rem;
+}
+.bh-ajuste-historico-item:last-child { border-bottom: none; }
+
+.bh-ajuste-historico-esq {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.bh-ajuste-historico-data {
+  color: #92400e;
+  font-weight: 500;
+}
+
+.bh-ajuste-historico-justif {
+  color: #78350f;
+  font-size: 0.67rem;
+  font-style: italic;
+  opacity: 0.85;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bh-ajuste-historico-dir {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.bh-ajuste-historico-val {
+  font-weight: 700;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.bh-ajuste-lixeira {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.2rem;
+  border-radius: 4px;
+  opacity: 0.5;
+  line-height: 1;
+  transition: opacity 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.bh-ajuste-lixeira:hover {
+  opacity: 1;
+  background: #fee2e2;
+}
+
+.bh-detalhe-vazio-mes {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  padding: 1.5rem;
+  font-style: italic;
+}
+
+.bh-detalhe-editar-btn {
+  background: #ede9fe;
+  border: 1.5px solid #c4b5fd;
+  border-radius: 8px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #5b21b6;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.bh-detalhe-editar-btn:hover { background: #ddd6fe; }
+
+.positivo { color: #16a34a; }
+.negativo { color: #dc2626; }
+.neutro { color: #9ca3af; }
+
+.escala-em-desenvolvimento {
+  background: #fffbeb;
+  border: 1.5px dashed #f59e0b;
+  color: #92400e;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.01em;
+}
+
+/* ── Calendário: feriados fixos e custom ───────────────────────── */
+.escala-cal-dia.feriado-custom {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+}
+.escala-cal-dia.feriado-fixo {
+  background: #ede9fe !important;
+  border-color: #a78bfa !important;
+}
+.escala-cal-fer-tag {
+  display: block;
+  font-size: 0.6rem;
+  line-height: 1;
+  margin-top: 1px;
+}
+.sb-fer-tag {
+  font-size: 0.55rem;
+}
+
+/* ── Painel de Regras do Banco de Horas ─────────────────────────── */
+.escala-regras-painel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.09);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.escala-regras-titulo {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a4b8c;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.escala-regras-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 0.65rem 0.8rem;
+}
+
+.escala-regras-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.88rem;
+}
+
+.escala-regras-icone {
+  font-size: 1.1rem;
+}
+
+.escala-regras-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.escala-regras-input-wrap input {
+  width: 90px;
+  padding: 0.4rem 0.6rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a4b8c;
+  background: #fff;
+  text-align: center;
+}
+
+.escala-regras-input-wrap input:focus {
+  outline: none;
+  border-color: #1a4b8c;
+}
+
+.escala-regras-pct {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.escala-regras-ex {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.escala-regras-salvar {
+  background: #1a4b8c;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  align-self: flex-start;
+}
+
+.escala-regras-salvar:hover {
+  background: #1e40af;
+}
+
+.escala-regras-salvar.salvo {
+  background: #16a34a;
+}
+
+/* ── Painel de Feriados Municipais / Locais ─────────────────────── */
+.escala-fer-custom-painel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.09);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.escala-fer-custom-titulo {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a4b8c;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.escala-fer-custom-desc {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.escala-fer-custom-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.escala-fer-custom-input {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.45rem 0.7rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1a4b8c;
+  background: #f9fafb;
+}
+
+.escala-fer-custom-input:focus {
+  outline: none;
+  border-color: #1a4b8c;
+  background: #fff;
+}
+
+.escala-fer-custom-add {
+  background: #f59e0b;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.escala-fer-custom-add:hover {
+  background: #d97706;
+}
+
+.escala-fer-custom-erro {
+  font-size: 0.78rem;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.escala-fer-custom-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.escala-fer-custom-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+}
+
+.escala-fer-custom-data {
+  font-size: 0.85rem;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.escala-fer-custom-remover {
+  background: none;
+  border: none;
+  color: #dc2626;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 0.2rem;
+  line-height: 1;
+}
+
+.escala-fer-custom-vazio {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Banco de Horas — visão do agente (novo layout) ─────────────── */
+.bh-agente-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bh-agente-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: #fff;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.09);
+}
+
+.bh-agente-nome-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.bh-agente-subtitulo {
+  font-size: 0.72rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Blocos individuais */
+.bh-bloco {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.09);
+  overflow: hidden;
+}
+
+.bh-bloco-domfer {
+  border-top: 3px solid #f59e0b;
+}
+
+.bh-bloco-sabado {
+  border-top: 3px solid #2563eb;
+}
+
+.bh-bloco-descontos {
+  border-top: 3px solid #16a34a;
+}
+
+.bh-bloco-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.bh-bloco-icone {
+  font-size: 1.1rem;
+}
+
+.bh-bloco-titulo {
+  flex: 1;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.bh-bloco-total {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a4b8c;
+  background: #e8f0fe;
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
+}
+
+.bh-bloco-domfer .bh-bloco-total {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.bh-bloco-sabado .bh-bloco-total {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.bh-bloco-descontos .bh-bloco-total {
+  color: #166534;
+  background: #dcfce7;
+}
+
+/* Lista de Domingos/Feriados */
+.bh-domfer-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0.7rem;
+}
+
+.bh-domfer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #fef9ee;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.82rem;
+}
+
+.bh-domfer-row--justif {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.bh-domfer-row-topo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.bh-domfer-justif {
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-style: italic;
+  padding-left: 0.2rem;
+  padding-top: 0.15rem;
+}
+
+.bh-domfer-justif-input-wrap {
+  padding-top: 0.2rem;
+}
+
+.bh-domfer-justif-input {
+  width: 100%;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.78rem;
+  color: #374151;
+  background: transparent;
+  outline: none;
+  box-sizing: border-box;
+}
+.bh-domfer-justif-input::placeholder { color: #9ca3af; }
+.bh-domfer-justif-input:focus { border-color: #1a4b8c; background: #fff; }
+
+.escala-justif-textarea {
+  width: 100%;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+  color: #374151;
+  background: #f9fafb;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+.escala-justif-textarea:focus { border-color: #1a4b8c; background: #fff; }
+
+.bh-domfer-row.desconto {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.bh-domfer-dia {
+  font-weight: 600;
+  color: #92400e;
+  min-width: 28px;
+}
+
+.bh-domfer-data {
+  color: #6b7280;
+  flex: 1;
+}
+
+.bh-domfer-input {
+  font-weight: 600;
+  color: #374151;
+}
+
+.bh-domfer-mult {
+  font-size: 0.75rem;
+  color: #d97706;
+  font-weight: 600;
+  background: #fef3c7;
+  padding: 0.1rem 0.35rem;
+  border-radius: 10px;
+}
+
+.bh-domfer-calc {
+  font-weight: 700;
+  color: #1a4b8c;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* ── Navegação mensal (BancoHorasAgente) ───────────────────────────── */
+.bh-mes-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 10px;
+  padding: 0.45rem 0.75rem;
+  gap: 0.5rem;
+}
+.bh-mes-nav-btn {
+  background: none;
+  border: 1.5px solid #c4b5fd;
+  border-radius: 8px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #7c3aed;
+  transition: background 0.15s;
+  line-height: 1.5;
+}
+.bh-mes-nav-btn:hover { background: #ede9fe; }
+.bh-mes-nav-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #374151;
+  flex: 1;
+  text-align: center;
+}
+
+/* ── Saldo acumulado de meses anteriores ───────────────────────────── */
+.bh-saldo-anterior {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 9px;
+  padding: 0.5rem 0.85rem;
+  gap: 0.5rem;
+}
+.bh-saldo-ant-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #92400e;
+}
+.bh-saldo-ant-valor {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #16a34a;
+}
+
+/* ── Subtotal do mês ───────────────────────────────────────────────── */
+.bh-subtotal-mes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 9px;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #166534;
+}
+
+/* Total Geral */
+.bh-total-geral {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #1a4b8c, #2563eb);
+  color: #fff;
+  border-radius: 12px;
+  padding: 0.85rem 1.1rem;
+  box-shadow: 0 2px 8px rgba(26,75,140,0.25);
+}
+
+.bh-total-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.bh-total-valor {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bh-total-h {
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-left: 2px;
+}
+
+/* ── Legenda clicável (Moisés em modo edição) ──────────────────────── */
+.escala-legenda-dica {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #1a4b8c;
+  margin-left: 4px;
+}
+
+.escala-legenda-item--clicavel {
+  background: #f8faff;
+  border: 1px solid #cfe0f5;
+  border-radius: 999px;
+  padding: 4px 10px 4px 8px;
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
+  font-family: inherit;
+}
+.escala-legenda-item--clicavel:hover {
+  background: #e6efff;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+}
+.escala-legenda-item--clicavel:active {
+  transform: scale(0.97);
+}
+.escala-legenda-edit-icone {
+  font-size: 0.7rem;
+  margin-left: 2px;
+  opacity: 0.75;
+}
+
+/* ── Modal por agente: calendário do mês ──────────────────────────── */
+.modal-agente-calendario {
+  max-width: 480px;
+  width: 95%;
+}
+.mac-instrucoes {
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  color: #713f12;
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+}
+.mac-nav-mes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 8px 0 10px;
+}
+.mac-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #cfe0f5;
+  background: #f8faff;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a4b8c;
+}
+.mac-nav-btn:hover { background: #e6efff; }
+.mac-nav-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #0f172a;
+  min-width: 130px;
+  text-align: center;
+}
+.mac-resumo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+  justify-content: center;
+}
+.mac-chip {
+  font-size: 0.72rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.mac-chip-sb   { background: #dbeafe; color: #1e3a8a; border: 1px solid #93c5fd; }
+.mac-chip-folga{ background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.mac-chip strong { font-size: 0.8rem; margin: 0 2px; }
+
+.mac-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.mac-dia {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  position: relative;
+  transition: transform 0.08s ease, background 0.12s ease;
+}
+.mac-dia:hover { background: #f3f4f6; }
+.mac-dia:active { transform: scale(0.94); }
+.mac-dia:disabled { cursor: not-allowed; opacity: 0.45; }
+.mac-dia.hoje {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+.mac-dia.mac-folga {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+.mac-dia.mac-folga:hover { background: #15803d; }
+.mac-dia.mac-ferias {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #78350f;
+}
+.mac-dia.feriado-fixo:not(.mac-sb):not(.mac-folga):not(.mac-ferias) {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+.mac-dia.feriado-custom:not(.mac-sb):not(.mac-folga):not(.mac-ferias) {
+  background: #fef9c3;
+  border-color: #facc15;
+}
+.mac-dia-num {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.mac-dia-tag {
+  font-size: 0.85rem;
+  line-height: 1;
+  min-height: 0.85rem;
+}
+
+/* ── Prazo encerrado — sobreaviso ──────────────────────────────── */
+.bh-dia-prazo-aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #9ca3af;
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Aviso de prazo — Extras Simples ───────────────────────────── */
+.bh-prazo-aviso-texto {
+  font-size: 0.74rem;
+  color: #6b7280;
+  margin: 8px 0 0;
+  padding: 4px 8px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border-left: 3px solid #e5e7eb;
+}
+
+/* ── Edição inline de horas extras ─────────────────────────────── */
+.bh-extra-edit-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.bh-extra-edit-input {
+  width: 56px;
+  padding: 3px 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: 2px solid #3b82f6;
+  border-radius: 6px;
+  text-align: center;
+  outline: none;
+  background: #eff6ff;
+  color: #1e40af;
+}
+.bh-domfer-input-h {
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+.bh-extra-edit-ok {
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+.bh-extra-edit-ok:hover { background: #15803d; }
+.bh-extra-edit-cancel {
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+  border-radius: 5px;
+  padding: 3px 7px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+.bh-extra-edit-cancel:hover { background: #d1d5db; }
+.bh-extra-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.bh-extra-edit-btn:hover { opacity: 1; background: #f3f4f6; }
+
+/* ── Simulador de dias (Moisés / edição) ────────────────────── */
+.escala-simulador-dias {
+  background: #f0f9ff;
+  border: 1.5px solid #bae6fd;
+  border-radius: 12px;
+  padding: 0.6rem 0.8rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.escala-simulador-titulo {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0369a1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.escala-simulador-controles {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.escala-simulador-btn {
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  user-select: none;
+}
+.escala-simulador-btn:active { transform: scale(0.94); }
+.escala-simulador-btn:hover { background: #0284c7; }
+
+.escala-simulador-btn-reset {
+  background: #6b7280;
+  font-size: 1rem;
+  padding: 0.25rem 0.55rem;
+}
+.escala-simulador-btn-reset:hover { background: #374151; }
+
+.escala-simulador-data {
+  flex: 1;
+  min-width: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.escala-simulador-hoje-label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f766e;
+  background: #d1fae5;
+  border-radius: 8px;
+  padding: 0.2rem 0.7rem;
+}
+
+.escala-simulador-offset {
+  font-size: 0.85rem;
+  font-weight: 800;
+  border-radius: 6px;
+  padding: 0.15rem 0.5rem;
+}
+.escala-simulador-offset.passado {
+  background: #fef3c7;
+  color: #92400e;
+}
+.escala-simulador-offset.futuro {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.escala-simulador-data-valor {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.escala-simulador-aviso {
+  font-size: 0.75rem;
+  color: #b45309;
+  background: #fef9c3;
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  font-weight: 600;
+}
+
+/* ── Afastamentos ────────────────────────────────────────────── */
+.escala-modal-agente.em-afastamento {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #fef3c7 !important;
+  border-color: #d97706 !important;
+}
+
+.escala-modal-afastamento-tag {
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  margin-left: auto;
+}
+
+.escala-afastamento-painel {
+  border-color: #fbbf24 !important;
+  background: #fffbeb !important;
+}
+
+.escala-afastamento-painel .escala-ferias-titulo {
+  color: #92400e;
+}
+
+.escala-afastamento-add {
+  background: #d97706 !important;
+  color: #fff !important;
+}
+.escala-afastamento-add:hover {
+  background: #b45309 !important;
+}
+
+.escala-afastamento-motivo {
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: #92400e;
+  background: #fef3c7;
+  border-radius: 5px;
+  padding: 0.1rem 0.4rem;
+}
+
+.escala-legenda-afastamento-bloco {
+  border-color: #fbbf24 !important;
+  background: #fffbeb !important;
+}
+
+.escala-legenda-afastamento-bloco .escala-legenda-ferias-titulo {
+  color: #92400e;
+}
+
+.escala-legenda-afastamento-periodo {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+/* ── Ocorrências automáticas no banco de horas ─────────────────── */
+.bh-bloco-ocauto {
+  border-left: 3px solid #dc2626;
+}
+
+.bh-bloco-ocauto .bh-bloco-icone { color: #dc2626; }
+
+.bh-oc-auto-row {
+  flex-direction: column;
+  align-items: stretch;
+  background: #fff5f5;
+  border-color: #fecaca;
+  gap: 0.3rem;
+}
+
+.bh-oc-auto-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+}
+
+.bh-oc-auto-hora {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.bh-oc-auto-nat {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.bh-oc-auto-end {
+  font-size: 0.76rem;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.bh-oc-auto-calc {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.bh-oc-auto-mult {
+  font-size: 0.76rem;
+  color: #b45309;
+  font-weight: 600;
+  background: #fef3c7;
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+}

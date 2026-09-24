@@ -1,0 +1,77 @@
+2:05:13 PM: Netlify Build                                                 
+2:05:13 PM: ────────────────────────────────────────────────────────────────
+2:05:13 PM: ​
+2:05:13 PM: ❯ Version
+2:05:13 PM:   @netlify/build 35.15.0
+2:05:13 PM: ​
+2:05:13 PM: ❯ Flags
+2:05:13 PM:   accountId: 69d6a3ac24e1c6fe98fb2323
+2:05:13 PM:   baseRelDir: true
+2:05:13 PM:   buildId: 6a2aea7a1462880008503bac
+2:05:13 PM:   deployId: 6a2aea7a1462880008503bae
+2:05:13 PM: ​
+2:05:13 PM: ❯ Current directory
+2:05:13 PM:   /opt/build/repo
+2:05:13 PM: ​
+2:05:13 PM: ❯ Config file
+2:05:13 PM:   /opt/build/repo/netlify.toml
+2:05:13 PM: ​
+2:05:13 PM: ❯ Context
+2:05:13 PM:   production
+2:05:13 PM: ​
+2:05:13 PM: build.command from netlify.toml                               
+2:05:13 PM: ────────────────────────────────────────────────────────────────
+2:05:13 PM: ​
+2:05:13 PM: $ npm run build
+2:05:13 PM: > defesacivil@0.0.0 build
+2:05:13 PM: > vite build
+2:05:13 PM: sh: 1: vite: not found
+2:05:13 PM: ​
+2:05:13 PM: "build.command" failed                                        
+2:05:13 PM: ────────────────────────────────────────────────────────────────
+2:05:13 PM: ​
+2:05:13 PM:   Error message
+2:05:13 PM:   Command failed with exit code 127: npm run build (https://ntl.fyi/exit-code-127)
+2:05:13 PM: ​
+2:05:13 PM:   Error location
+2:05:13 PM:   In build.command from netlify.toml:
+2:05:13 PM:   npm run build
+2:05:13 PM: ​
+2:05:13 PM:   Resolved config
+2:05:13 PM:   build:
+2:05:13 PM:     command: npm run build
+2:05:13 PM:     commandOrigin: config
+2:05:13 PM:     environment:
+2:05:13 PM:       - VITE_SUPABASE_ANON_KEY
+2:05:13 PM:       - VITE_SUPABASE_URL
+2:05:13 PM:       - NODE_VERSION
+2:05:13 PM:       - VITE_USE_SUPABASE
+2:05:13 PM:       - VITE_VAPID_PUBLIC_KEY
+2:05:13 PM:     publish: /opt/build/repo/dist
+2:05:13 PM:     publishOrigin: config
+2:05:13 PM:   functionsDirectory: /opt/build/repo/netlify/functions
+2:05:13 PM:   headers:
+2:05:13 PM:     - for: /sw.js
+2:05:13 PM:       values:
+2:05:13 PM:         Cache-Control: public, max-age=0, must-revalidate
+2:05:13 PM:         Service-Worker-Allowed: /
+2:05:13 PM:     - for: /manifest.json
+2:05:13 PM:       values:
+2:05:13 PM:         Cache-Control: public, max-age=0, must-revalidate
+2:05:14 PM: Failed during stage 'building site': Build script returned non-zero exit code: 2 (https://ntl.fyi/exit-code-2)
+2:05:14 PM:     - for: /assets/*
+      values:
+        Cache-Control: public, max-age=31536000, immutable
+  headersOrigin: config
+  redirects:
+    - force: true
+      from: /api/send-sos-push
+      status: 200
+      to: /.netlify/functions/send-sos-push
+    - from: /*
+      status: 200
+      to: /index.html
+  redirectsOrigin: config
+2:05:14 PM: Build failed due to a user error: Build script returned non-zero exit code: 2
+2:05:14 PM: Failing build: Failed to build site
+2:05:14 PM: Finished processing build request in 1m18.981s

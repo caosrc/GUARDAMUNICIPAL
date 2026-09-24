@@ -1,0 +1,8 @@
+{
+  "name": "netlify-functions",
+  "version": "1.0.0",
+  "dependencies": {
+    "@google/earthengine": "^1.7.40",
+    "web-push": "^3.6.7"
+  }
+}

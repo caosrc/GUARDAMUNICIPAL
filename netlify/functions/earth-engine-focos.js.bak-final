@@ -1,0 +1,182 @@
+process.chdir('/tmp');
+const ee = require('@google/earthengine');
+
+function resposta(statusCode, body) {
+  return {
+    statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=300',
+    },
+    body: JSON.stringify(body),
+  };
+}
+
+async function autenticar() {
+  const raw = process.env.EARTH_ENGINE_SERVICE_ACCOUNT_JSON;
+
+  if (!raw) {
+    throw new Error('EARTH_ENGINE_SERVICE_ACCOUNT_JSON não configurada');
+  }
+
+  const chave = JSON.parse(raw);
+  const project = process.env.EARTH_ENGINE_PROJECT || chave.project_id;
+
+  await new Promise((resolve, reject) => {
+    ee.data.authenticateViaPrivateKey(
+      chave,
+      () => resolve(),
+      reject
+    );
+  });
+
+  await new Promise((resolve, reject) => {
+    ee.initialize(null, null, resolve, reject, project);
+  });
+
+  return project;
+}
+
+exports.handler = async () => {
+  try {
+    const project = await autenticar();
+
+    const municipio = ee.FeatureCollection('FAO/GAUL/2015/level2')
+      .filter(ee.Filter.eq('ADM2_NAME', 'Ouro Branco'))
+      .filter(ee.Filter.eq('ADM1_NAME', 'Minas Gerais'))
+      .geometry();
+
+    const hoje = new Date();
+    const inicio = hoje.toISOString().slice(0, 10);
+
+    // Earth Engine usa intervalo [inicio, fim).
+    // Usamos amanhã como limite para incluir todo o dia de hoje.
+    const amanha = new Date(hoje);
+    amanha.setUTCDate(amanha.getUTCDate() + 1);
+    const fim = amanha.toISOString().slice(0, 10);
+
+    const colecoes = [
+      {
+        id: 'modis-terra-fire',
+        nome: 'MODIS Terra',
+        satelite: 'MODIS Terra',
+        colecao: 'MODIS/061/MOD14A1',
+        escala: 1000,
+      },
+      {
+        id: 'modis-aqua-fire',
+        nome: 'MODIS Aqua',
+        satelite: 'MODIS Aqua',
+        colecao: 'MODIS/061/MYD14A1',
+        escala: 1000,
+      },
+      {
+        id: 'viirs-fire',
+        nome: 'VIIRS Suomi-NPP',
+        satelite: 'VIIRS Suomi-NPP',
+        colecao: 'NASA/VIIRS/002/VNP14A1',
+        escala: 1000,
+      },
+    ];
+
+    const focos = [];
+    const indicadores = [];
+    const camadas = [];
+
+    for (const config of colecoes) {
+      const colecao = ee.ImageCollection(config.colecao)
+        .filterDate(inicio, fim)
+        .filterBounds(municipio)
+        .select('FireMask');
+
+      const quantidade = await colecao.size().getInfo();
+
+      if (!quantidade) {
+        indicadores.push({
+          id: `${config.id}-total`,
+          nome: `Focos ${config.nome}`,
+          valor: 0,
+          unidade: 'detecção(ões)',
+          disponivel: false,
+        });
+        continue;
+      }
+
+      const imagem = colecao.max();
+      const mascara = imagem.gte(7).selfMask();
+
+      const pontos = mascara.reduceToVectors({
+        geometry: municipio,
+        scale: config.escala,
+        geometryType: 'centroid',
+        reducer: ee.Reducer.countEvery(),
+        bestEffort: true,
+        maxPixels: 100000000,
+      });
+
+      const dados = await pontos.getInfo();
+
+      const encontrados = [];
+
+      for (const feature of (dados.features || [])) {
+        const coords = feature.geometry?.coordinates;
+
+        if (!coords || coords.length < 2) continue;
+
+        encontrados.push({
+          lat: Number(coords[1]),
+          lng: Number(coords[0]),
+          confidence: 'h',
+          frp: 0,
+          data: fim,
+          hora: '',
+          satelite: config.satelite,
+          fonte: `EARTH-ENGINE-${config.id.toUpperCase()}`,
+        });
+      }
+
+      focos.push(...encontrados);
+
+      const mapa = imagem.gte(7).selfMask().getMap({
+        min: 7,
+        max: 9,
+        palette: ['fef08a', 'f97316', 'dc2626'],
+      });
+
+      camadas.push({
+        id: config.id,
+        nome: config.nome,
+        descricao: `Focos de fogo ativo detectados pelo ${config.nome}.`,
+        url: mapa.urlFormat,
+        periodo: `Somente hoje — ${fim}`,
+        imagens: quantidade,
+      });
+
+      indicadores.push({
+        id: `${config.id}-total`,
+        nome: `Focos ${config.nome}`,
+        valor: encontrados.length,
+        unidade: 'detecção(ões)',
+        disponivel: true,
+      });
+    }
+
+    return resposta(200, {
+      configurado: true,
+      projeto: project,
+      focos,
+      camadas,
+      indicadores,
+      periodo: { inicio, fim },
+      atualizadoEm: new Date().toISOString(),
+    });
+
+  } catch (e) {
+    console.error('[earth-engine]', e);
+
+    return resposta(500, {
+      configurado: false,
+      erro: e?.message || String(e),
+    });
+  }
+};

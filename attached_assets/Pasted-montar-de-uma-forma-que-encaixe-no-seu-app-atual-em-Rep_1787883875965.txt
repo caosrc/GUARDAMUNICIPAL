@@ -1,0 +1,92 @@
+montar de uma forma que encaixe no seu app atual em Replit + Netlify + MapLibre, sem tentar colocar o arquivo bruto do GOES diretamente no navegador.
+
+O ponto principal é este: o RRQPE do GOES-16 é exatamente um produto com valor de chuva em mm/h por pixel, em grade de aproximadamente 2 km, gerado a cada 10 minutos. A NOAA disponibiliza o produto ABI-L2-RRQPEF publicamente no armazenamento do GOES-16.
+
+O que vamos construir
+GOES-16 RRQPE
+      ↓
+arquivo mais recente
+      ↓
+processamento
+      ↓
+recorte Ouro Branco + entorno
+      ↓
+Raster de chuva
+      ↓
+MapLibre
+      ↓
+┌───────────────────────────────┐
+│        OURO BRANCO             │
+│                                │
+│       🟢🟢🟡                   │
+│     🟢🟡🟡🟠                   │
+│     🟡🟠🔴🔴                  │
+│      🟠🔴🔴                   │
+│        🟡🟠                   │
+│                                │
+│  Chuva: 18,7 mm/h              │
+│  Área atingida: 24,8%          │
+└───────────────────────────────┘
+
+E ao clicar:
+
+Precipitação estimada: 18,7 mm/h
+Atualização: 22:40
+Fonte: GOES-16 RRQPE
+
+O MapLibre suporta fontes raster/tiles diretamente, então essa é uma arquitetura adequada para a camada.
+
+Mas quero fazer uma alteração importante na implementação
+
+Não vou colocar o processamento do RRQPE dentro do Netlify.
+
+O Netlify ficará responsável pelo seu aplicativo.
+
+Para o RRQPE, precisamos de um pequeno serviço que:
+
+verifica o último ABI-L2-RRQPEF;
+baixa somente o arquivo necessário;
+extrai rainfall_rate;
+converte a grade geostacionária do GOES para coordenadas;
+recorta Ouro Branco;
+transforma em raster/tiles;
+disponibiliza para o MapLibre;
+atualiza automaticamente a cada 10 minutos.
+
+Isso é importante porque o arquivo original do NOAA é NetCDF, enquanto o MapLibre trabalha muito melhor com raster tiles/COG. A própria documentação do MapLibre mostra suporte a raster e COG.
+
+Também vou colocar RainViewer separado
+
+No seu mapa teremos dois botões:
+
+☔ RRQPE
+
+Intensidade estimada pelo GOES-16 em mm/h.
+
+📡 RADAR
+
+Chuva detectada pelos radares disponíveis no RainViewer.
+
+Assim você poderá comparar as duas fontes.
+
+Para eu adaptar ao seu aplicativo de verdade
+
+Como você já tem o projeto funcionando no Replit, eu não quero inventar nomes de arquivos ou substituir partes do seu código que já funcionam.
+
+Me envie o projeto atual do Replit, de preferência o ZIP do projeto.
+
+Com ele eu consigo identificar onde está o seu MapLibre e montar:
+
+RRQPE no mapa;
+limite de Ouro Branco;
+camada de chuva;
+escala de intensidade;
+clique para mostrar mm/h;
+cálculo da área do município atingida;
+atualização automática;
+RainViewer;
+controle liga/desliga;
+legenda;
+indicador de horário da última atualização.
+
+A NOAA confirma que o RRQPE está disponível publicamente no bucket noaa-goes16 e que os arquivos usam o produto ABI-L2-RRQPEF.

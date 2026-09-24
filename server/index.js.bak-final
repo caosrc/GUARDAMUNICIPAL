@@ -1,0 +1,2403 @@
+import express from 'express'
+import cors from 'cors'
+import compression from 'compression'
+import pg from 'pg'
+import JSZip from 'jszip'
+import webpush from 'web-push'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+import { existsSync, readFileSync, readdirSync } from 'fs'
+import { createServer } from 'http'
+import { WebSocketServer } from 'ws'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const execFileAsync = promisify(execFile)
+const pythonBin = process.env.PYTHON_BIN
+  || (existsSync(join(__dirname, '..', '.pythonlibs', 'bin', 'python'))
+    ? join(__dirname, '..', '.pythonlibs', 'bin', 'python')
+    : 'python3')
+
+// ── PostgreSQL — usa Supabase se SUPABASE_DB_URL estiver definido ──────────
+const dbUrl = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL
+console.log(`🗄️  Banco: ${process.env.SUPABASE_DB_URL ? 'Supabase' : 'Replit PostgreSQL'}`)
+const pool = new pg.Pool({
+  connectionString: dbUrl,
+  ssl: process.env.SUPABASE_DB_URL ? { rejectUnauthorized: false } : false,
+})
+
+async function query(sql, params = []) {
+  const client = await pool.connect()
+  try {
+    const result = await client.query(sql, params)
+    return result
+  } finally {
+    client.release()
+  }
+}
+
+const app = express()
+const httpServer = createServer(app)
+
+app.use(compression())
+app.use(cors({
+  origin: true,
+  credentials: true,
+}))
+app.use(express.json({ limit: '100mb' }))
+
+// ── VAPID (Web Push) ──
+// Strip any base64 padding (=) that web-push does not accept
+function stripBase64Padding(key) {
+  return (key || '').replace(/=+$/, '')
+}
+const VAPID_PUBLIC_KEY = stripBase64Padding(process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || '')
+const VAPID_PRIVATE_KEY = stripBase64Padding(process.env.VAPID_PRIVATE_KEY || '')
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:defesacivilob@gmail.com'
+let vapidConfigured = false
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
+    vapidConfigured = true
+    console.log('[VAPID] configurado com sucesso')
+  } catch (e) {
+    console.warn('[VAPID] configuração inválida:', e?.message || e)
+  }
+}
+
+app.get('/api/vapid-public-key', (_req, res) => {
+  res.json({ publicKey: VAPID_PUBLIC_KEY })
+})
+
+// ── WebSocket — Rastreamento em tempo real ──────────────────────────────────
+const wss = new WebSocketServer({ server: httpServer, path: '/ws' })
+
+const todosConectados = new Set()
+const dispositivosOnline = new Map()
+const agentesOnline = new Map()
+const prontidaoAtivos = new Map() // id → { nome, planoId, ts }
+const ONLINE_TTL_MS = 60 * 1000
+const PRONTIDAO_TTL_MS = 5 * 60 * 1000 // 5 min sem renovar → expirar
+
+// Endpoint REST para leitura inicial da lista de agentes online
+// (independente de timing do WebSocket)
+function getAgentesOnlineAtivos() {
+  const agora = Date.now()
+  const lista = []
+  for (const [id, info] of agentesOnline) {
+    if (agora - info.ts <= ONLINE_TTL_MS) lista.push({ id, nome: info.nome })
+  }
+  return lista
+}
+
+function emitirOnlineSync() {
+  const agora = Date.now()
+  const agentes = []
+  for (const [id, info] of agentesOnline) {
+    if (agora - info.ts > ONLINE_TTL_MS) continue
+    agentes.push({ id, nome: info.nome })
+  }
+  broadcastParaTodos({ tipo: 'online_sync', agentes })
+}
+
+function broadcastParaTodos(payload, excluirWs = null) {
+  const json = JSON.stringify(payload)
+  for (const ws of todosConectados) {
+    if (ws !== excluirWs && ws.readyState === 1) {
+      ws.send(json)
+    }
+  }
+}
+
+const sosAtivos = new Map()
+const SOS_TTL_MS = 60 * 60 * 1000
+
+async function enviarPushSosServidor(msg) {
+  if (!vapidConfigured) return
+  if (!msg || !msg.id || !msg.agente) return
+  try {
+    const result = await query('SELECT id, endpoint, p256dh, auth, agente FROM push_subscriptions')
+    const subs = result.rows
+    if (!subs.length) return
+    const localPart = msg.lat != null && msg.lng != null
+      ? `📍 ${Number(msg.lat).toFixed(4)}, ${Number(msg.lng).toFixed(4)}`
+      : 'Localização em apuração'
+    const payload = JSON.stringify({
+      title: '🆘 SOS — Defesa Civil Ouro Branco',
+      body: `${msg.agente} acionou o SOS! ${localPart}`,
+      tag: `sos-${msg.id}`,
+      sosId: msg.id,
+      url: '/',
+    })
+    const removidos = []
+    await Promise.all(subs.map(async (s) => {
+      if (msg.deviceId && s.id === msg.deviceId) return
+      if (s.agente && msg.agente && s.agente === msg.agente) return
+      try {
+        await webpush.sendNotification(
+          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+          payload,
+          { TTL: 60 * 30, urgency: 'high' },
+        )
+      } catch (err) {
+        const status = err && err.statusCode
+        if (status === 404 || status === 410) removidos.push(s.id)
+        else console.warn('[SOS-push] erro:', s.id, status)
+      }
+    }))
+    if (removidos.length > 0) {
+      await query('DELETE FROM push_subscriptions WHERE id = ANY($1)', [removidos])
+    }
+  } catch (e) {
+    console.warn('[SOS-push] falha geral:', e?.message || e)
+  }
+}
+
+// ── Envio de push para agentes específicos (escala, confirmação, evento) ─────
+async function enviarPushParaAgentes(agentesAlvo, payloadJson, excluirAgente = null) {
+  if (!vapidConfigured || !agentesAlvo || agentesAlvo.length === 0) return 0
+  try {
+    const result = await query('SELECT id, endpoint, p256dh, auth, agente FROM push_subscriptions')
+    const subs = result.rows.filter(s => {
+      if (!s.agente) return false
+      if (excluirAgente && s.agente === excluirAgente) return false
+      return agentesAlvo.includes(s.agente)
+    })
+    const removidos = []
+    let enviados = 0
+    await Promise.all(subs.map(async (s) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+          typeof payloadJson === 'string' ? payloadJson : JSON.stringify(payloadJson),
+          { TTL: 60 * 60 * 24, urgency: 'normal' }
+        )
+        enviados++
+      } catch (err) {
+        const status = err && err.statusCode
+        if (status === 404 || status === 410) removidos.push(s.id)
+        else console.warn('[push-agentes] erro:', s.id, status)
+      }
+    }))
+    if (removidos.length > 0) {
+      await query('DELETE FROM push_subscriptions WHERE id = ANY($1)', [removidos])
+    }
+    return enviados
+  } catch (e) {
+    console.warn('[push-agentes] falha geral:', e?.message || e)
+    return 0
+  }
+}
+
+// ── Notifica agentes escalados no dia do evento ────────────────────────────
+async function notificarEventosDoDia() {
+  if (!vapidConfigured) return
+  try {
+    const hoje = new Date().toISOString().split('T')[0]
+    const result = await query(
+      "SELECT id, nome, agentes_defesa_civil FROM planejamentos WHERE data_inicio = $1 AND tipo = 'evento' AND status NOT IN ('cancelado', 'concluido')",
+      [hoje]
+    )
+    for (const p of result.rows) {
+      const agentes = Array.isArray(p.agentes_defesa_civil) ? p.agentes_defesa_civil : []
+      if (!agentes.length) continue
+      const payload = JSON.stringify({
+        title: `📸 Evento hoje: ${p.nome}`,
+        body: 'Registre fotos do evento no aplicativo da Defesa Civil!',
+        tag: `evento-dia-${p.id}-${hoje}`,
+        tipo: 'evento_dia',
+        url: '/',
+      })
+      const n = await enviarPushParaAgentes(agentes, payload)
+      console.log(`[scheduler] evento-dia "${p.nome}": ${n} notificação(ões) enviada(s)`)
+    }
+  } catch (e) {
+    console.warn('[scheduler] notificarEventosDoDia:', e?.message)
+  }
+}
+
+function processarSos(msg, wsRemetente = null) {
+  if (!msg || !msg.id) return
+  const existente = sosAtivos.get(msg.id)
+  if (existente) {
+    const fundido = { ...existente, ...msg }
+    sosAtivos.set(msg.id, fundido)
+    broadcastParaTodos(fundido, wsRemetente)
+  } else {
+    const novo = { ...msg, visualizadores: [], mensagens: [] }
+    sosAtivos.set(msg.id, novo)
+    broadcastParaTodos(msg, wsRemetente)
+    enviarPushSosServidor(msg).catch(() => {})
+    // Persiste no banco de dados
+    query(
+      `INSERT INTO sos_ativos_db (id, agente, lat, lng, bateria, audio, timestamp, visualizadores, mensagens)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       ON CONFLICT (id) DO UPDATE SET agente=$2, lat=$3, lng=$4, bateria=$5, audio=COALESCE($6, sos_ativos_db.audio), timestamp=$7`,
+      [msg.id, msg.agente || '', msg.lat ?? null, msg.lng ?? null, msg.bateria ?? null,
+       msg.audio ?? null, msg.timestamp || Date.now(), JSON.stringify([]), JSON.stringify([])]
+    ).catch(e => console.warn('[SOS-DB] erro ao salvar:', e?.message))
+  }
+}
+
+function processarSosAudio(msg, wsRemetente = null) {
+  if (!msg || !msg.id || !msg.audio) return
+  const existente = sosAtivos.get(msg.id)
+  if (existente) {
+    sosAtivos.set(msg.id, { ...existente, audio: msg.audio })
+    // Atualiza áudio no banco
+    query('UPDATE sos_ativos_db SET audio=$1 WHERE id=$2', [msg.audio, msg.id])
+      .catch(e => console.warn('[SOS-DB] erro ao atualizar áudio:', e?.message))
+  }
+  broadcastParaTodos(msg, wsRemetente)
+}
+
+function processarSosCancelar(msg, wsRemetente = null) {
+  if (!msg || !msg.id) return
+  sosAtivos.delete(msg.id)
+  broadcastParaTodos(msg, wsRemetente)
+  // Remove do banco de dados
+  query('DELETE FROM sos_ativos_db WHERE id=$1', [msg.id])
+    .catch(e => console.warn('[SOS-DB] erro ao remover:', e?.message))
+}
+
+wss.on('connection', (ws) => {
+  todosConectados.add(ws)
+  let dispositivoId = null
+  let onlineId = null
+
+  const posicoeAtuais = []
+  for (const [id, d] of dispositivosOnline) {
+    if (d.lat !== null && d.lat !== undefined) {
+      posicoeAtuais.push({ id, nome: d.nome, lat: d.lat, lng: d.lng, precisao: d.precisao, velocidade: d.velocidade })
+    }
+  }
+  if (posicoeAtuais.length > 0) {
+    ws.send(JSON.stringify({ tipo: 'posicoes_iniciais', posicoes: posicoeAtuais }))
+  }
+
+  const agora = Date.now()
+  const sosValidos = []
+  for (const [, alerta] of sosAtivos) {
+    if (agora - alerta.timestamp < SOS_TTL_MS) sosValidos.push(alerta)
+  }
+  if (sosValidos.length > 0) {
+    ws.send(JSON.stringify({ tipo: 'sos_persistidos', alertas: sosValidos }))
+  }
+
+  const agentesAtuais = []
+  for (const [id, info] of agentesOnline) {
+    if (Date.now() - info.ts <= ONLINE_TTL_MS) agentesAtuais.push({ id, nome: info.nome })
+  }
+  ws.send(JSON.stringify({ tipo: 'online_sync', agentes: agentesAtuais }))
+
+  ws.on('message', (data) => {
+    try {
+      const msg = JSON.parse(data.toString())
+
+      if (msg.tipo === 'posicao') {
+        dispositivoId = msg.id
+        dispositivosOnline.set(dispositivoId, {
+          ws,
+          nome: msg.nome || `Equipe ${msg.id}`,
+          lat: msg.lat,
+          lng: msg.lng,
+          precisao: msg.precisao || 0,
+          velocidade: msg.velocidade ?? null,
+          ts: Date.now(),
+        })
+        broadcastParaTodos({
+          tipo: 'posicao',
+          id: msg.id,
+          nome: msg.nome || `Equipe ${msg.id}`,
+          lat: msg.lat,
+          lng: msg.lng,
+          precisao: msg.precisao || 0,
+          velocidade: msg.velocidade ?? null,
+        }, ws)
+      }
+
+      if (msg.tipo === 'parar') {
+        const idParar = msg.id || dispositivoId
+        if (dispositivosOnline.has(idParar)) {
+          dispositivosOnline.delete(idParar)
+          broadcastParaTodos({ tipo: 'remover', id: idParar })
+        }
+      }
+
+      if (msg.tipo === 'ping') {
+        ws.send(JSON.stringify({ tipo: 'pong' }))
+      }
+
+      if (msg.tipo === 'online') {
+        const id = String(msg.id || '')
+        const nome = String(msg.nome || `Equipe ${id.slice(0, 4)}`)
+        if (id) {
+          onlineId = id
+          agentesOnline.set(id, { nome, ts: Date.now() })
+          emitirOnlineSync()
+        }
+      }
+      if (msg.tipo === 'offline') {
+        const id = String(msg.id || onlineId || '')
+        if (id && agentesOnline.has(id)) {
+          agentesOnline.delete(id)
+          emitirOnlineSync()
+        }
+      }
+
+      if (msg.tipo === 'online_ping') {
+        const id = String(msg.id || onlineId || '')
+        if (id && agentesOnline.has(id)) {
+          const info = agentesOnline.get(id)
+          info.ts = Date.now()
+          agentesOnline.set(id, info)
+        }
+      }
+
+      if (msg.tipo === 'solicitar_online') {
+        const lista = []
+        for (const [id, info] of agentesOnline) {
+          if (Date.now() - info.ts <= ONLINE_TTL_MS) lista.push({ id, nome: info.nome })
+        }
+        ws.send(JSON.stringify({ tipo: 'online_sync', agentes: lista }))
+      }
+
+      if (msg.tipo === 'solicitar_estado') {
+        const posicoes = []
+        for (const [id, d] of dispositivosOnline) {
+          if (d.lat !== null && d.lat !== undefined) {
+            posicoes.push({ id, nome: d.nome, lat: d.lat, lng: d.lng, precisao: d.precisao, velocidade: d.velocidade })
+          }
+        }
+        if (posicoes.length > 0) {
+          ws.send(JSON.stringify({ tipo: 'posicoes_iniciais', posicoes }))
+        }
+        const agoraEstado = Date.now()
+        const sosValidos = []
+        for (const [, alerta] of sosAtivos) {
+          if (agoraEstado - alerta.timestamp < SOS_TTL_MS) sosValidos.push(alerta)
+        }
+        if (sosValidos.length > 0) {
+          ws.send(JSON.stringify({ tipo: 'sos_persistidos', alertas: sosValidos }))
+        }
+      }
+
+      if (msg.tipo === 'sos') processarSos(msg, ws)
+      if (msg.tipo === 'sos-audio') processarSosAudio(msg, ws)
+      if (msg.tipo === 'sos-cancelar') processarSosCancelar(msg, ws)
+
+      if (msg.tipo === 'sos-visualizar') {
+        const { id, agente } = msg
+        if (id && agente) {
+          const existente = sosAtivos.get(id)
+          if (existente) {
+            const vizs = Array.isArray(existente.visualizadores) ? existente.visualizadores : []
+            if (!vizs.includes(agente)) {
+              const atualizados = [...vizs, agente]
+              sosAtivos.set(id, { ...existente, visualizadores: atualizados })
+              broadcastParaTodos({ tipo: 'sos-visualizado', id, visualizadores: atualizados }, null)
+              // Persiste no banco
+              query('UPDATE sos_ativos_db SET visualizadores=$1 WHERE id=$2',
+                [JSON.stringify(atualizados), id])
+                .catch(e => console.warn('[SOS-DB] erro ao atualizar visualizadores:', e?.message))
+            } else {
+              // Já visualizou, mas envia o estado atual para o agente que reconectou
+              if (vizs.length > 0) {
+                broadcastParaTodos({ tipo: 'sos-visualizado', id, visualizadores: vizs }, null)
+              }
+            }
+          }
+        }
+      }
+
+      if (msg.tipo === 'sos-mensagem') {
+        processarSosMensagem(msg).catch(() => {})
+      }
+
+      if (msg.tipo === 'prontidao') {
+        const pid = String(msg.id || '')
+        const pNome = String(msg.nome || `Equipe ${pid.slice(0, 4)}`)
+        const pPlanoId = String(msg.planoId || '')
+        if (pid && pPlanoId) {
+          prontidaoAtivos.set(pid, { nome: pNome, planoId: pPlanoId, ts: Date.now() })
+          broadcastParaTodos({ tipo: 'prontidao', id: pid, nome: pNome, planoId: pPlanoId, ativo: true }, ws)
+        }
+      }
+
+      if (msg.tipo === 'prontidao_sair') {
+        const pid = String(msg.id || '')
+        if (pid && prontidaoAtivos.has(pid)) {
+          const info = prontidaoAtivos.get(pid)
+          prontidaoAtivos.delete(pid)
+          broadcastParaTodos({ tipo: 'prontidao_sair', id: pid, planoId: info.planoId }, ws)
+        }
+      }
+    } catch { /* ignora mensagens malformadas */ }
+  })
+
+  // Envia prontidões ativas para o novo cliente
+  const prontidoesAtuais = []
+  const agoraPront = Date.now()
+  for (const [id, d] of prontidaoAtivos) {
+    if (agoraPront - d.ts <= PRONTIDAO_TTL_MS) {
+      prontidoesAtuais.push({ id, nome: d.nome, planoId: d.planoId })
+    } else {
+      prontidaoAtivos.delete(id)
+    }
+  }
+  if (prontidoesAtuais.length > 0) {
+    ws.send(JSON.stringify({ tipo: 'prontidao_iniciais', agentes: prontidoesAtuais }))
+  }
+
+  ws.on('close', () => {
+    todosConectados.delete(ws)
+    if (dispositivoId) {
+      dispositivosOnline.delete(dispositivoId)
+      broadcastParaTodos({ tipo: 'remover', id: dispositivoId })
+    }
+    if (onlineId && agentesOnline.has(onlineId)) {
+      agentesOnline.delete(onlineId)
+      emitirOnlineSync()
+    }
+    // Remove prontidão ao desconectar
+    if (dispositivoId && prontidaoAtivos.has(dispositivoId)) {
+      const info = prontidaoAtivos.get(dispositivoId)
+      prontidaoAtivos.delete(dispositivoId)
+      broadcastParaTodos({ tipo: 'prontidao_sair', id: dispositivoId, planoId: info.planoId })
+    }
+  })
+
+  ws.on('error', () => {
+    todosConectados.delete(ws)
+    if (dispositivoId) dispositivosOnline.delete(dispositivoId)
+    if (onlineId) agentesOnline.delete(onlineId)
+    if (dispositivoId && prontidaoAtivos.has(dispositivoId)) {
+      prontidaoAtivos.delete(dispositivoId)
+    }
+  })
+})
+
+setInterval(() => {
+  const limite = Date.now() - 90 * 1000
+  for (const [id, d] of dispositivosOnline) {
+    if (d.ts < limite || d.ws.readyState !== 1) {
+      dispositivosOnline.delete(id)
+      broadcastParaTodos({ tipo: 'remover', id })
+    }
+  }
+  let mudouOnline = false
+  const limiteOnline = Date.now() - ONLINE_TTL_MS
+  for (const [id, info] of agentesOnline) {
+    if (info.ts < limiteOnline) {
+      agentesOnline.delete(id)
+      mudouOnline = true
+    }
+  }
+  if (mudouOnline) emitirOnlineSync()
+}, 15 * 1000)
+
+// ── Report generation helpers ──────────────────────────────────────────────
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+
+function xmlEscape(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
+function formatarDataCurta(data = new Date()) {
+  return data.toLocaleDateString('pt-BR')
+}
+
+function formatarDataExtenso(data = new Date()) {
+  return `${data.getDate()} de ${MESES[data.getMonth()]} de ${data.getFullYear()}`
+}
+
+function decimalParaGms(valor, positivo, negativo) {
+  const absoluto = Math.abs(Number(valor))
+  const graus = Math.floor(absoluto)
+  const minutosFloat = (absoluto - graus) * 60
+  const minutos = Math.floor(minutosFloat)
+  const segundos = ((minutosFloat - minutos) * 60).toFixed(2).replace('.', ',')
+  return `${graus}° ${minutos}' ${segundos}" ${Number(valor) >= 0 ? positivo : negativo}`
+}
+
+function formatarCoordenadas(lat, lng) {
+  if (lat == null || lng == null || lat === '' || lng === '') return 'Não informadas'
+  return `${decimalParaGms(lat, 'N', 'S')}, ${decimalParaGms(lng, 'L', 'O')}`
+}
+
+function limparNomeArquivo(valor, fallback) {
+  const limpo = String(valor || fallback)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+  return limpo || fallback
+}
+
+function nomeRua(endereco) {
+  const texto = String(endereco || '').trim()
+  if (!texto) return 'Endereco'
+  return texto.split(',')[0].trim() || texto
+}
+
+function relatorioFileName(ocorrencia) {
+  const numero = limparNomeArquivo(ocorrencia.id, 'numero')
+  const rua = limparNomeArquivo(nomeRua(ocorrencia.endereco), 'Nome_da_Rua')
+  const requerente = limparNomeArquivo(ocorrencia.proprietario, 'Nome_do_requerente')
+  return `RelVist_${numero}_${rua}_${requerente}.docx`
+}
+
+function getRelatorioTemplatePath() {
+  const assetsPath = join(__dirname, '..', 'attached_assets')
+  const arquivos = readdirSync(assetsPath)
+    .filter((nome) => nome.startsWith('RelVist_') && nome.endsWith('.docx'))
+    .sort()
+  if (!arquivos.length) throw new Error('Modelo de relatório não encontrado em attached_assets')
+  return join(assetsPath, arquivos[arquivos.length - 1])
+}
+
+function parseDataUrl(dataUrl) {
+  const match = String(dataUrl || '').match(/^data:(image\/(?:png|jpeg|jpg));base64,(.+)$/)
+  if (!match) return null
+  const mime = match[1] === 'image/jpg' ? 'image/jpeg' : match[1]
+  const extension = mime === 'image/png' ? 'png' : 'jpeg'
+  return { mime, extension, buffer: Buffer.from(match[2], 'base64') }
+}
+
+function imageDrawingXml(rId, index) {
+  const cx = 2880000
+  const cy = 3420000
+  return `<w:p><w:pPr><w:spacing w:before="0" w:after="0"/><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${200 + index}" name="Foto ${index}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="0"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${300 + index}" name="Foto ${index}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`
+}
+
+async function gerarRelatorioVistoria(ocorrencia) {
+  const template = readFileSync(getRelatorioTemplatePath())
+  const zip = await JSZip.loadAsync(template)
+  const hoje = new Date()
+  const natureza = ocorrencia.natureza || 'Não informada'
+  const requerente = ocorrencia.proprietario || 'Não informado'
+  const endereco = ocorrencia.endereco || 'Não informado'
+  let documentXml = await zip.file('word/document.xml').async('string')
+
+  const situacao = ocorrencia.situacao || ''
+  const recomendacao = ocorrencia.recomendacao || ''
+  const conclusao = ocorrencia.conclusao || ''
+
+  const substituicoes = {
+    '"data 1"': formatarDataCurta(hoje),
+    '"Nome do requerente"': xmlEscape(requerente),
+    '"Natureza da Ocorrência"': xmlEscape(natureza),
+    'Natureza da Ocorrência': xmlEscape(natureza),
+    '"data 2"': xmlEscape(formatarDataExtenso(hoje)),
+    '"Endereço"': xmlEscape(endereco),
+    '"coordenadas do local"': xmlEscape(formatarCoordenadas(ocorrencia.lat, ocorrencia.lng)),
+    'coordenadas do local': xmlEscape(formatarCoordenadas(ocorrencia.lat, ocorrencia.lng)),
+    '(informações da situação descrita na ocorrência, quadro 9)': xmlEscape(situacao),
+    '(informações da recomendação descrita na ocorrência, quadro 10)': xmlEscape(recomendacao),
+    '(informações da situação descrita na conclusão, quadro 11)': xmlEscape(conclusao),
+  }
+
+  for (const [alvo, valor] of Object.entries(substituicoes)) {
+    documentXml = documentXml.split(alvo).join(valor)
+  }
+
+  if (ocorrencia.tipo === 'Vistoria Ambiental') {
+    documentXml = documentXml
+      .split('Cristiane Caroline Campos Lopes').join('Talita Oliveira de Ara\u00FAjo')
+    const paragrafoCargo = '<w:p><w:pPr><w:keepNext w:val="false" /><w:keepLines w:val="false" /><w:pageBreakBefore w:val="false" /><w:widowControl w:val="true" /><w:pBdr></w:pBdr><w:spacing w:after="0" /><w:ind /><w:jc w:val="center" /><w:rPr><w:rFonts w:hint="default" w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" /><w:sz w:val="20" /><w:szCs w:val="20" /></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="default" w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" /><w:sz w:val="20" /><w:szCs w:val="20" /></w:rPr><w:t>Analista Ambiental</w:t></w:r></w:p>'
+    documentXml = documentXml.replace(
+      /<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*?Engenheira Civil - (?:(?!<\/w:p>)[\s\S])*?<\/w:p>/,
+      paragrafoCargo
+    )
+  } else {
+    documentXml = documentXml
+      .split('Talita Oliveira de Ara\u00FAjo').join('Cristiane Caroline Campos Lopes')
+      .split('Talita Oliveira de Araújo').join('Cristiane Caroline Campos Lopes')
+      .split('Analista Ambiental').join('Engenheira Civil - Coordenadoria Municipal de Prote\u00E7\u00E3o e Defesa Civil')
+  }
+
+  documentXml = documentXml
+    .replace(/[""]/g, '')
+    .replace(/,\s*Zona Rural de Olaria/g, '')
+    .replace(/\s+Zona Rural de Olaria,\s*coordenadas/g, ' coordenadas')
+    .replace(/\s*descreva a conclus.o\.?/gi, '')
+
+  let relsXml = await zip.file('word/_rels/document.xml.rels').async('string')
+  const contentTypesFile = zip.file('[Content_Types].xml')
+  let contentTypesXml = await contentTypesFile.async('string')
+  const ids = [...relsXml.matchAll(/Id="rId(\d+)"/g)].map((match) => Number(match[1]))
+  let proximoId = Math.max(0, ...ids) + 1
+
+  const fotos = Array.isArray(ocorrencia.fotos) ? ocorrencia.fotos.slice(0, 6) : []
+  fotos.forEach((foto, index) => {
+    const imagem = parseDataUrl(foto)
+    if (!imagem) return
+    const numero = index + 1
+    const rId = `rId${proximoId++}`
+    const target = `media/relatorio_foto_${numero}.${imagem.extension}`
+    zip.file(`word/${target}`, imagem.buffer)
+    relsXml = relsXml.replace(
+      '</Relationships>',
+      `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${target}" /></Relationships>`
+    )
+    if (!contentTypesXml.includes(`Extension="${imagem.extension}"`)) {
+      contentTypesXml = contentTypesXml.replace(
+        '</Types>',
+        `<Default Extension="${imagem.extension}" ContentType="${imagem.mime}"/></Types>`
+      )
+    }
+    const captionRegex = new RegExp(`(<w:p\\b(?:(?!<\\/w:p>)[\\s\\S])*?SEQ Figura(?:(?!<\\/w:p>)[\\s\\S])*?<w:t[^>]*>\\s*${numero}\\s*<\\/w:t>(?:(?!<\\/w:p>)[\\s\\S])*?<\\/w:p>)`)
+    documentXml = documentXml.replace(captionRegex, `${imageDrawingXml(rId, numero)}$1`)
+  })
+
+  documentXml = documentXml.replace(/<w:tc>([\s\S]*?)<\/w:tc>/g, (match, content) => {
+    if (!content.includes('<w:drawing>')) return match
+    const cleaned = content.replace(/<w:p\b(?:(?!<\/w:p>)[\s\S])*?<\/w:p>/g, (para) => {
+      const hasText = /<w:t[^>]*>[^<]/.test(para)
+      const hasDrawing = para.includes('<w:drawing>')
+      return (hasText || hasDrawing) ? para : ''
+    })
+    return `<w:tc>${cleaned}</w:tc>`
+  })
+
+  zip.file('word/document.xml', documentXml)
+  zip.file('word/_rels/document.xml.rels', relsXml)
+  zip.file('[Content_Types].xml', contentTypesXml)
+  return zip.generateAsync({ type: 'nodebuffer' })
+}
+
+// ── DB init — cria tabelas se não existirem ─────────────────────────────────
+async function initDb() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS ocorrencias (
+      id BIGSERIAL PRIMARY KEY,
+      tipo TEXT,
+      natureza TEXT,
+      subnatureza TEXT,
+      nivel_risco TEXT,
+      status_oc TEXT DEFAULT 'ativo',
+      fotos JSONB DEFAULT '[]',
+      lat DOUBLE PRECISION,
+      lng DOUBLE PRECISION,
+      endereco TEXT,
+      proprietario TEXT,
+      situacao TEXT,
+      recomendacao TEXT,
+      conclusao TEXT,
+      data_ocorrencia TEXT,
+      agentes JSONB DEFAULT '[]',
+      responsavel_registro TEXT,
+      vistorias JSONB DEFAULT '[]',
+      focos_incendio JSONB DEFAULT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+  await query(`ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS focos_incendio JSONB DEFAULT NULL`)
+  await query(`ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS poligono_area_queimada JSONB DEFAULT NULL`)
+  await query(`ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS hora_inicio VARCHAR(5)`)
+  await query(`ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS hora_fim VARCHAR(5)`)
+  await query(`ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS horas_total NUMERIC(5,2)`)
+  await query(`ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS horas_sobreaviso NUMERIC(5,2)`)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS escala_estado (
+      id INTEGER PRIMARY KEY,
+      data JSONB,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS checklists_viatura (
+      id BIGSERIAL PRIMARY KEY,
+      data_checklist TEXT,
+      km TEXT,
+      placa TEXT,
+      motorista TEXT,
+      fotos_avarias JSONB DEFAULT '[]',
+      foto_frontal TEXT,
+      foto_traseira TEXT,
+      foto_direita TEXT,
+      foto_esquerda TEXT,
+      itens JSONB DEFAULT '{}',
+      observacoes TEXT,
+      assinatura_data TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS materiais (
+      id TEXT PRIMARY KEY,
+      nome TEXT NOT NULL,
+      descricao TEXT,
+      observacoes TEXT,
+      foto TEXT,
+      foto_placa TEXT,
+      foto_thumb TEXT,
+      quantidade INTEGER NOT NULL DEFAULT 1,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+  // Garante que todas as colunas de foto existam em tabelas criadas com schema antigo
+  await query(`ALTER TABLE materiais ADD COLUMN IF NOT EXISTS foto TEXT`)
+  await query(`ALTER TABLE materiais ADD COLUMN IF NOT EXISTS foto_placa TEXT`)
+  await query(`ALTER TABLE materiais ADD COLUMN IF NOT EXISTS foto_thumb TEXT`)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS emprestimos (
+      id BIGSERIAL PRIMARY KEY,
+      material_id TEXT NOT NULL REFERENCES materiais(id) ON DELETE CASCADE,
+      material_codigo TEXT NOT NULL,
+      material_nome TEXT NOT NULL,
+      responsavel TEXT NOT NULL,
+      cpf TEXT,
+      secretaria TEXT,
+      prazo_dias INTEGER NOT NULL DEFAULT 7,
+      quantidade INTEGER NOT NULL DEFAULT 1,
+      data_emprestimo TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      data_devolucao_prevista DATE,
+      condicao_equipamento TEXT,
+      observacoes TEXT,
+      agente_emprestador TEXT,
+      assinatura_data TEXT,
+      devolvido_em TIMESTAMPTZ,
+      devolvido_obs TEXT,
+      devolvido_recebedor TEXT,
+      devolvido_foto TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id TEXT PRIMARY KEY,
+      agente TEXT,
+      endpoint TEXT NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS equipamentos_campo (
+      id BIGSERIAL PRIMARY KEY,
+      material_id TEXT REFERENCES materiais(id) ON DELETE SET NULL,
+      material_nome TEXT,
+      fotos JSONB,
+      latitude DOUBLE PRECISION,
+      longitude DOUBLE PRECISION,
+      rua TEXT,
+      numero TEXT,
+      bairro TEXT,
+      observacao TEXT,
+      quantidade INTEGER NOT NULL DEFAULT 1,
+      prazo_dias INTEGER,
+      data_recolha_prevista DATE,
+      status TEXT NOT NULL DEFAULT 'ativo',
+      agente TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS sos_ativos_db (
+      id TEXT PRIMARY KEY,
+      agente TEXT NOT NULL,
+      lat DOUBLE PRECISION,
+      lng DOUBLE PRECISION,
+      bateria INTEGER,
+      audio TEXT,
+      timestamp BIGINT NOT NULL,
+      visualizadores JSONB DEFAULT '[]',
+      mensagens JSONB DEFAULT '[]',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await query(`ALTER TABLE emprestimos ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'emprestimo'`)
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS planejamentos (
+      id TEXT PRIMARY KEY,
+      tipo TEXT,
+      nome TEXT,
+      descricao TEXT,
+      local TEXT,
+      data_inicio TEXT,
+      data_fim TEXT,
+      horario TEXT,
+      horario_fim TEXT,
+      publico_estimado TEXT,
+      status TEXT DEFAULT 'planejamento',
+      equipe JSONB DEFAULT '[]',
+      agentes_defesa_civil JSONB DEFAULT '[]',
+      materiais JSONB DEFAULT '[]',
+      itens_mapa JSONB DEFAULT '[]',
+      pontos_extras JSONB DEFAULT '[]',
+      lat DOUBLE PRECISION,
+      lng DOUBLE PRECISION,
+      observacoes TEXT,
+      risco TEXT,
+      criado_por TEXT,
+      criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await query(`ALTER TABLE planejamentos ADD COLUMN IF NOT EXISTS confirmacoes_agentes JSONB DEFAULT '[]'`)
+  await query(`ALTER TABLE planejamentos ADD COLUMN IF NOT EXISTS fotos_evento JSONB DEFAULT '[]'`)
+  await query(`ALTER TABLE planejamentos ADD COLUMN IF NOT EXISTS conclusao TEXT`)
+  await query(`ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS descricoes_fotos JSONB DEFAULT '[]'`)
+
+  console.log('[DB] Tabelas verificadas/criadas com sucesso')
+
+  // Notifica agentes sobre eventos do dia (ao iniciar e a cada 6h)
+  setTimeout(() => notificarEventosDoDia().catch(() => {}), 8000)
+  setInterval(() => notificarEventosDoDia().catch(() => {}), 6 * 60 * 60 * 1000)
+
+  // Carrega SOS ainda válidos do banco ao iniciar
+  try {
+    const limiteTs = Date.now() - SOS_TTL_MS
+    const result = await query(
+      'SELECT * FROM sos_ativos_db WHERE timestamp > $1',
+      [limiteTs]
+    )
+    for (const row of result.rows) {
+      sosAtivos.set(row.id, {
+        tipo: 'sos',
+        id: row.id,
+        agente: row.agente,
+        lat: row.lat,
+        lng: row.lng,
+        bateria: row.bateria,
+        audio: row.audio,
+        timestamp: Number(row.timestamp),
+        visualizadores: Array.isArray(row.visualizadores) ? row.visualizadores : [],
+        mensagens: Array.isArray(row.mensagens) ? row.mensagens : [],
+      })
+    }
+    if (result.rows.length > 0) {
+      console.log(`[SOS] ${result.rows.length} alerta(s) ativo(s) carregado(s) do banco`)
+    }
+    // Limpa SOS expirados do banco
+    await query('DELETE FROM sos_ativos_db WHERE timestamp <= $1', [limiteTs]).catch(() => {})
+  } catch (e) {
+    console.warn('[SOS] erro ao carregar alertas do banco:', e?.message)
+  }
+}
+
+function broadcastOcorrenciasAtualizadas() {
+  broadcastParaTodos({ tipo: 'ocorrencias_atualizadas' })
+}
+
+// ── Ocorrências ─────────────────────────────────────────────────────────────
+
+// Busca fotos e vistorias do Supabase server-side (sem CORS) — para exportação Excel
+// Suporta fotos como base64 ou URLs do Supabase Storage (baixa e converte no servidor)
+app.get('/api/ocorrencias/fotos-supabase-lote', async (req, res) => {
+  const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
+  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return res.status(503).json({ error: 'Supabase não configurado no servidor' })
+  }
+  const raw = (req.query.ids || '').toString().trim()
+  if (!raw) return res.json([])
+  const ids = raw.split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n) && n > 0)
+  if (ids.length === 0) return res.json([])
+
+  try {
+    // Consulta Supabase REST API diretamente do servidor
+    const idsParam = ids.join(',')
+    const apiUrl = `${SUPABASE_URL}/rest/v1/ocorrencias?select=id,fotos,vistorias&id=in.(${idsParam})`
+    const resp = await fetch(apiUrl, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Accept': 'application/json',
+      }
+    })
+    if (!resp.ok) {
+      const txt = await resp.text()
+      console.error('fotos-supabase-lote Supabase error:', resp.status, txt)
+      return res.status(resp.status).json({ error: txt })
+    }
+    const rows = await resp.json()
+
+    // Processa fotos: Storage URLs → baixa e converte para base64; base64 → passa direto
+    const result = []
+    for (const row of rows) {
+      const fotosProcessadas = []
+      for (const foto of (Array.isArray(row.fotos) ? row.fotos : [])) {
+        if (typeof foto !== 'string' || !foto) continue
+        if (foto.startsWith('https://') && foto.includes('supabase.co/storage')) {
+          // URL do Supabase Storage — baixa server-side e converte para base64
+          try {
+            const imgResp = await fetch(foto, {
+              headers: { 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+            })
+            if (imgResp.ok) {
+              const buf = await imgResp.arrayBuffer()
+              const ct = imgResp.headers.get('content-type') || 'image/jpeg'
+              fotosProcessadas.push(`data:${ct};base64,${Buffer.from(buf).toString('base64')}`)
+            }
+          } catch { /* pula foto que não conseguiu baixar */ }
+        } else {
+          fotosProcessadas.push(foto) // já é base64
+        }
+      }
+      result.push({
+        id: row.id,
+        fotos: fotosProcessadas,
+        vistorias: Array.isArray(row.vistorias) ? row.vistorias : [],
+      })
+    }
+    res.json(result)
+  } catch (err) {
+    console.error('fotos-supabase-lote error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Busca fotos e vistorias em lote (para exportação Excel) — aceita ?ids=1,2,3
+app.get('/api/ocorrencias/fotos-lote', async (req, res) => {
+  try {
+    const raw = (req.query.ids || '').toString().trim()
+    if (!raw) return res.json([])
+    const ids = raw.split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n) && n > 0)
+    if (ids.length === 0) return res.json([])
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',')
+    const result = await query(
+      `SELECT id, fotos, vistorias FROM ocorrencias WHERE id IN (${placeholders})`,
+      ids
+    )
+    res.json(result.rows)
+  } catch (err) {
+    console.error('GET /api/ocorrencias/fotos-lote error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.get('/api/ocorrencias', async (req, res) => {
+  try {
+    // Exclui fotos e vistorias (base64 pesado) da listagem — carregados sob demanda ao abrir
+    const result = await query(
+      `SELECT id, tipo, natureza, subnatureza, nivel_risco, status_oc,
+              lat, lng, endereco, proprietario, situacao, recomendacao, conclusao,
+              data_ocorrencia, hora_inicio, hora_fim, horas_total, horas_sobreaviso,
+              agentes, responsavel_registro, focos_incendio, poligono_area_queimada,
+              created_at
+       FROM ocorrencias ORDER BY created_at DESC`
+    )
+    res.json(result.rows)
+  } catch (err) {
+    console.error('GET /api/ocorrencias error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/ocorrencias', async (req, res) => {
+  const { tipo, natureza, subnatureza, nivel_risco, status_oc, fotos, descricoes_fotos, lat, lng, endereco, proprietario, situacao, recomendacao, conclusao, data_ocorrencia, agentes, responsavel_registro, vistorias, focos_incendio, poligono_area_queimada } = req.body
+  try {
+    const result = await query(
+      `INSERT INTO ocorrencias (tipo, natureza, subnatureza, nivel_risco, status_oc, fotos, descricoes_fotos, lat, lng, endereco, proprietario, situacao, recomendacao, conclusao, data_ocorrencia, agentes, responsavel_registro, vistorias, focos_incendio, poligono_area_queimada)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
+      [tipo, natureza, subnatureza || null, nivel_risco, status_oc || 'ativo',
+       JSON.stringify(Array.isArray(fotos) ? fotos : []),
+       JSON.stringify(Array.isArray(descricoes_fotos) ? descricoes_fotos : []),
+       lat || null, lng || null, endereco || null, proprietario || null,
+       situacao || null, recomendacao || null, conclusao || null,
+       data_ocorrencia || null,
+       JSON.stringify(Array.isArray(agentes) ? agentes : []),
+       responsavel_registro || null,
+       JSON.stringify(Array.isArray(vistorias) ? vistorias : []),
+       Array.isArray(focos_incendio) && focos_incendio.length ? JSON.stringify(focos_incendio) : null,
+       Array.isArray(poligono_area_queimada) && poligono_area_queimada.length ? JSON.stringify(poligono_area_queimada) : null]
+    )
+    broadcastOcorrenciasAtualizadas()
+    res.status(201).json(result.rows[0])
+  } catch (err) {
+    console.error('POST /api/ocorrencias error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.get('/api/ocorrencias/:id', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM ocorrencias WHERE id = $1', [req.params.id])
+    if (!result.rows[0]) return res.status(404).json({ error: 'Não encontrado' })
+    res.json(result.rows[0])
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/ocorrencias/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10)
+  if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' })
+  const { tipo, natureza, subnatureza, nivel_risco, status_oc, fotos, descricoes_fotos, lat, lng, endereco, proprietario, situacao, recomendacao, conclusao, data_ocorrencia, hora_inicio, hora_fim, horas_total, horas_sobreaviso, agentes, vistorias, focos_incendio, poligono_area_queimada, created_at } = req.body
+  console.log(`PUT /api/ocorrencias/${id} — tipo=${tipo} natureza=${natureza}`)
+  try {
+    const result = await query(
+      `UPDATE ocorrencias SET tipo=$1, natureza=$2, subnatureza=$3, nivel_risco=$4, status_oc=$5,
+       fotos=$6, descricoes_fotos=$7, lat=$8, lng=$9, endereco=$10, proprietario=$11, situacao=$12, recomendacao=$13,
+       conclusao=$14, data_ocorrencia=$15, hora_inicio=$16, hora_fim=$17,
+       horas_total=$18, horas_sobreaviso=$19,
+       agentes=$20, vistorias=$21, focos_incendio=$22,
+       poligono_area_queimada=$23, created_at=COALESCE($24, created_at)
+       WHERE id=$25 RETURNING *`,
+      [tipo, natureza, subnatureza || null, nivel_risco, status_oc,
+       JSON.stringify(Array.isArray(fotos) ? fotos : []),
+       JSON.stringify(Array.isArray(descricoes_fotos) ? descricoes_fotos : []),
+       lat != null && lat !== '' ? lat : null,
+       lng != null && lng !== '' ? lng : null,
+       endereco || null, proprietario || null,
+       situacao || null, recomendacao || null, conclusao || null,
+       data_ocorrencia || null,
+       hora_inicio || null, hora_fim || null,
+       horas_total != null ? horas_total : null,
+       horas_sobreaviso != null ? horas_sobreaviso : null,
+       JSON.stringify(Array.isArray(agentes) ? agentes : []),
+       JSON.stringify(Array.isArray(vistorias) ? vistorias : []),
+       Array.isArray(focos_incendio) && focos_incendio.length ? JSON.stringify(focos_incendio) : null,
+       Array.isArray(poligono_area_queimada) && poligono_area_queimada.length ? JSON.stringify(poligono_area_queimada) : null,
+       created_at || null,
+       id]
+    )
+    if (!result.rows[0]) return res.status(404).json({ error: 'Ocorrência não encontrada' })
+    console.log(`PUT /api/ocorrencias/${id} — salvo com sucesso`)
+    broadcastOcorrenciasAtualizadas()
+    return res.json(result.rows[0])
+  } catch (err) {
+    console.error('PUT /api/ocorrencias error:', err)
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/ocorrencias/:id', async (req, res) => {
+  try {
+    await query('DELETE FROM ocorrencias WHERE id = $1', [req.params.id])
+    broadcastOcorrenciasAtualizadas()
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Planejamentos ────────────────────────────────────────────────────────────
+app.get('/api/planejamentos', async (_req, res) => {
+  try {
+    const result = await query('SELECT * FROM planejamentos ORDER BY criado_em DESC')
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/planejamentos', async (req, res) => {
+  try {
+    const p = req.body
+    console.log(`[planejamentos POST] id=${p.id} status=${p.status} conclusao=${p.conclusao ?? ''}`)
+    // Se a atividade já existe e está concluída, preserva status e conclusão
+    await query(
+      `INSERT INTO planejamentos (id, tipo, nome, descricao, local, data_inicio, data_fim, horario, horario_fim, publico_estimado, status, equipe, agentes_defesa_civil, materiais, itens_mapa, pontos_extras, lat, lng, observacoes, risco, criado_por, criado_em, conclusao)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+       ON CONFLICT (id) DO UPDATE SET
+         tipo=$2, nome=$3, descricao=$4, local=$5, data_inicio=$6, data_fim=$7,
+         horario=$8, horario_fim=$9, publico_estimado=$10,
+         status=CASE WHEN planejamentos.status='concluido' THEN planejamentos.status ELSE $11 END,
+         equipe=$12, agentes_defesa_civil=$13, materiais=$14, itens_mapa=$15, pontos_extras=$16,
+         lat=$17, lng=$18, observacoes=$19, risco=$20, criado_por=$21,
+         conclusao=CASE WHEN planejamentos.status='concluido' THEN planejamentos.conclusao ELSE $23 END`,
+      [p.id, p.tipo, p.nome, p.descricao, p.local, p.data_inicio, p.data_fim, p.horario, p.horario_fim,
+       p.publico_estimado, p.status,
+       JSON.stringify(p.equipe || []), JSON.stringify(p.agentes_defesa_civil || []),
+       JSON.stringify(p.materiais || []), JSON.stringify(p.itens_mapa || []),
+       JSON.stringify(p.pontos_extras || []),
+       p.lat, p.lng, p.observacoes, p.risco, p.criado_por, p.criado_em || new Date().toISOString(),
+       p.conclusao || null]
+    )
+    broadcastParaTodos({ tipo: 'planejamentos_atualizados' })
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.patch('/api/planejamentos/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { status, conclusao } = req.body
+    // UPDATE atômico: só altera se não estiver concluído (ou se estiver confirmando a própria conclusão)
+    const result = await query(
+      `UPDATE planejamentos
+         SET status=$1, conclusao=$2
+       WHERE id=$3
+         AND (status <> 'concluido' OR $1 = 'concluido')
+       RETURNING id, status, conclusao`,
+      [status, conclusao ?? null, id]
+    )
+    if (result.rowCount === 0) {
+      // Nenhuma linha atualizada — verifica se o registro existe
+      const existe = await query(`SELECT status FROM planejamentos WHERE id=$1`, [id])
+      if (!existe.rows[0]) return res.status(404).json({ error: 'Planejamento não encontrado' })
+      return res.status(409).json({ error: 'Atividade já concluída — status não pode ser alterado.' })
+    }
+    broadcastParaTodos({ tipo: 'planejamentos_atualizados' })
+    res.json(result.rows[0])
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/planejamentos/:id', async (req, res) => {
+  try {
+    await query('DELETE FROM planejamentos WHERE id = $1', [req.params.id])
+    broadcastParaTodos({ tipo: 'planejamentos_atualizados' })
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Confirmação de presença no planejamento ───────────────────────────────
+app.post('/api/planejamentos/:id/confirmar', async (req, res) => {
+  try {
+    const { agente, confirmado, criador } = req.body
+    const { id } = req.params
+    const result = await query('SELECT confirmacoes_agentes, nome FROM planejamentos WHERE id = $1', [id])
+    if (!result.rows[0]) return res.status(404).json({ error: 'Planejamento não encontrado' })
+    let confirmacoes = Array.isArray(result.rows[0].confirmacoes_agentes) ? result.rows[0].confirmacoes_agentes : []
+    const idx = confirmacoes.findIndex(c => c.agente === agente)
+    const entrada = { agente, confirmado, confirmedAt: new Date().toISOString() }
+    if (idx >= 0) confirmacoes[idx] = entrada
+    else confirmacoes.push(entrada)
+    await query('UPDATE planejamentos SET confirmacoes_agentes = $1 WHERE id = $2', [JSON.stringify(confirmacoes), id])
+    broadcastParaTodos({ tipo: 'planejamentos_atualizados' })
+    if (criador) {
+      const planoNome = result.rows[0].nome || 'Planejamento'
+      const payload = JSON.stringify({
+        title: confirmado ? '✅ Presença confirmada' : '❌ Presença recusada',
+        body: confirmado
+          ? `${agente} confirmou presença em: ${planoNome}`
+          : `${agente} não poderá comparecer em: ${planoNome}`,
+        tag: `confirmacao-${id}-${agente.replace(/\s+/g, '-')}`,
+        tipo: 'confirmacao',
+        url: '/',
+      })
+      enviarPushParaAgentes([criador], payload, agente).catch(() => {})
+    }
+    res.json({ success: true, confirmacoes })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Fotos do evento — PUT substitui tudo atomicamente ────────────────────
+app.put('/api/planejamentos/:id/fotos', async (req, res) => {
+  try {
+    const { fotos } = req.body
+    const { id } = req.params
+    const result = await query('SELECT id FROM planejamentos WHERE id = $1', [id])
+    if (!result.rows[0]) return res.status(404).json({ error: 'Planejamento não encontrado' })
+    const arr = Array.isArray(fotos) ? fotos : []
+    await query('UPDATE planejamentos SET fotos_evento = $1 WHERE id = $2', [JSON.stringify(arr), id])
+    broadcastParaTodos({ tipo: 'planejamentos_atualizados' })
+    res.json({ success: true, fotos: arr })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── POST legado — mantido por compatibilidade (append) ────────────────────
+app.post('/api/planejamentos/:id/fotos', async (req, res) => {
+  try {
+    const { fotos } = req.body
+    const { id } = req.params
+    const result = await query('SELECT fotos_evento FROM planejamentos WHERE id = $1', [id])
+    if (!result.rows[0]) return res.status(404).json({ error: 'Planejamento não encontrado' })
+    const existentes = Array.isArray(result.rows[0].fotos_evento) ? result.rows[0].fotos_evento : []
+    const todas = [...existentes, ...(Array.isArray(fotos) ? fotos : [])]
+    await query('UPDATE planejamentos SET fotos_evento = $1 WHERE id = $2', [JSON.stringify(todas), id])
+    broadcastParaTodos({ tipo: 'planejamentos_atualizados' })
+    res.json({ success: true, fotos: todas })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Remover foto individual do evento ────────────────────────────────────
+app.delete('/api/planejamentos/:id/fotos/:idx', async (req, res) => {
+  try {
+    const { id, idx } = req.params
+    const result = await query('SELECT fotos_evento FROM planejamentos WHERE id = $1', [id])
+    if (!result.rows[0]) return res.status(404).json({ error: 'Planejamento não encontrado' })
+    const fotos = Array.isArray(result.rows[0].fotos_evento) ? result.rows[0].fotos_evento : []
+    fotos.splice(Number(idx), 1)
+    await query('UPDATE planejamentos SET fotos_evento = $1 WHERE id = $2', [JSON.stringify(fotos), id])
+    broadcastParaTodos({ tipo: 'planejamentos_atualizados' })
+    res.json({ success: true, fotos })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Push: notificar agentes escalados ────────────────────────────────────
+app.post('/api/push/escala', async (req, res) => {
+  try {
+    const { agentes, planoNome, planoId, remetente, planoTipo, planoData, planoHorario } = req.body
+    if (!Array.isArray(agentes) || agentes.length === 0) return res.json({ enviados: 0 })
+    const tipoLabel = { evento: 'Evento', operacao: 'Operação', simulado: 'Simulado', emergencia: 'Emergência' }[planoTipo] || 'Planejamento'
+    const dataInfo = planoData ? ` — ${new Date(planoData + 'T12:00:00').toLocaleDateString('pt-BR')}` : ''
+    const horarioInfo = planoHorario ? ` às ${planoHorario}` : ''
+    const remetenteInfo = remetente ? `${remetente} convocou você` : 'Você foi escalado'
+    const notifBody = `${remetenteInfo} para o ${tipoLabel}: ${planoNome}${dataInfo}${horarioInfo}. Confirme sua presença no app.`
+    const payload = JSON.stringify({
+      title: '🗓️ Convocação — Defesa Civil',
+      body: notifBody,
+      tag: `escala-${planoId}`,
+      tipo: 'escala',
+      url: '/',
+    })
+    const enviados = await enviarPushParaAgentes(agentes, payload, remetente || null)
+    res.json({ enviados })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Escala ──────────────────────────────────────────────────────────────────
+app.get('/api/escala', async (_req, res) => {
+  try {
+    const result = await query('SELECT data, updated_at FROM escala_estado WHERE id = 1')
+    if (!result.rows[0]) return res.json(null)
+    // Inclui updated_at junto com os dados para que o cliente possa comparar timestamps
+    res.json({ ...result.rows[0].data, updated_at: result.rows[0].updated_at })
+  } catch (err) {
+    console.error('GET /api/escala error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/escala', async (req, res) => {
+  try {
+    const data = req.body && typeof req.body === 'object' ? req.body : {}
+    await query(
+      `INSERT INTO escala_estado (id, data, updated_at) VALUES (1, $1, NOW())
+       ON CONFLICT (id) DO UPDATE SET data = $1, updated_at = NOW()`,
+      [JSON.stringify(data)]
+    )
+    broadcastParaTodos({ tipo: 'escala_atualizada' })
+    res.json({ success: true })
+  } catch (err) {
+    console.error('PUT /api/escala error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.get('/api/health', (req, res) => res.json({ ok: true }))
+
+// ── Focos de Incêndio — NASA FIRMS ─────────────────────────────────────────
+// Satélites: VIIRS-SNPP · VIIRS-NOAA20 · VIIRS-NOAA21 · MODIS · GOES (geoest.)
+//
+// Cache duplo para resposta rápida:
+//   GOES  → TTL 5 min  (satélite geoestacionário, atualiza a cada ~10 min)
+//   Polar → TTL 25 min (VIIRS + MODIS, sobrevoo ~2×/dia — não muda tão rápido)
+let goesCache  = { data: null, ts: 0 }
+let polarCache = { data: null, ts: 0 }
+let earthEngineCache = { data: null, ts: 0 }
+let earthEngineMonitoramentoCache = { data: null, ts: 0 }
+const GOES_TTL  = 5  * 60 * 1000   //  5 min
+const POLAR_TTL = 25 * 60 * 1000   // 25 min
+const EARTH_ENGINE_TTL = 25 * 60 * 1000
+const EARTH_ENGINE_MONITORAMENTO_TTL = 30 * 60 * 1000
+
+// Polígono oficial do município de Ouro Branco - MG (IBGE 3145901)
+// Fonte: servicodados.ibge.gov.br — resolução 5 (29 vértices)
+const OURO_BRANCO_POLIGONO = [
+  [-20.58410, -43.60130],
+  [-20.59710, -43.62220],
+  [-20.58790, -43.63630],
+  [-20.59360, -43.65400],
+  [-20.62150, -43.67870],
+  [-20.59990, -43.68800],
+  [-20.58820, -43.72000],
+  [-20.60100, -43.74160],
+  [-20.56720, -43.76480],
+  [-20.56960, -43.77440],
+  [-20.53800, -43.79980],
+  [-20.53410, -43.79190],
+  [-20.54800, -43.75790],
+  [-20.56440, -43.73460],
+  [-20.55200, -43.70290],
+  [-20.53830, -43.71100],
+  [-20.52150, -43.74400],
+  [-20.51240, -43.73640],
+  [-20.49950, -43.76630],
+  [-20.46020, -43.74780],
+  [-20.46140, -43.71210],
+  [-20.43150, -43.68740],
+  [-20.43330, -43.66160],
+  [-20.47150, -43.62430],
+  [-20.48700, -43.58930],
+  [-20.50870, -43.58010],
+  [-20.54090, -43.59760],
+  [-20.56200, -43.60060],
+  [-20.57520, -43.59010],
+]
+
+function pontoNoCidade(lat, lng) {
+  const poly = OURO_BRANCO_POLIGONO
+  let inside = false
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [yi, xi] = poly[i]
+    const [yj, xj] = poly[j]
+    const intersect = ((yi > lat) !== (yj > lat)) &&
+      (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)
+    if (intersect) inside = !inside
+  }
+  return inside
+}
+
+function parsearFirmsCsv(csv, fonteNome) {
+  const lines = csv.trim().split('\n')
+  if (lines.length < 2) return []
+  const headers = lines[0].split(',')
+  const idx = (name) => headers.indexOf(name)
+  return lines.slice(1).map(line => {
+    const cols = line.split(',')
+    const confRaw = (cols[idx('confidence')] || 'n').trim()
+    let confidence = 'n'
+    const confNum = parseInt(confRaw)
+    if (!isNaN(confNum)) {
+      if (fonteNome === 'MODIS') {
+        // MODIS: 0-100 % de confiança
+        confidence = confNum >= 70 ? 'h' : confNum >= 30 ? 'n' : 'l'
+      } else {
+        // GOES: 10/11=high, 30=nominal, 31-33=low; >65=high (G19FRP range)
+        confidence = confNum <= 11 ? 'h' : confNum <= 30 ? 'n' : confNum <= 65 ? 'l' : 'h'
+      }
+    } else {
+      const c0 = confRaw.toLowerCase()[0]
+      confidence = c0 === 'h' ? 'h' : c0 === 'l' ? 'l' : 'n'
+    }
+    return {
+      lat:      parseFloat(cols[idx('latitude')]),
+      lng:      parseFloat(cols[idx('longitude')]),
+      confidence,
+      frp:      parseFloat(cols[idx('frp')]) || 0,
+      data:     cols[idx('acq_date')] || '',
+      hora:     cols[idx('acq_time')] || '',
+      satelite: cols[idx('satellite')] || fonteNome,
+      fonte:    fonteNome,
+    }
+  }).filter(f => !isNaN(f.lat) && !isNaN(f.lng))
+}
+
+// Remove focos duplicados detectados por múltiplos satélites no mesmo ponto.
+// Distância < 0.01° (~1 km) = mesmo foco; mantém o de maior FRP.
+function deduplicarFocos(focos) {
+  const out = []
+  for (const f of focos) {
+    const dup = out.find(r => Math.abs(r.lat - f.lat) < 0.01 && Math.abs(r.lng - f.lng) < 0.01)
+    if (dup) { if (f.frp > dup.frp) Object.assign(dup, f) }
+    else out.push({ ...f })
+  }
+  return out
+}
+
+async function buscarFocosEarthEngine() {
+  if (!process.env.EARTH_ENGINE_SERVICE_ACCOUNT_JSON) {
+    return { configurado: false, erro: 'EARTH_ENGINE_SERVICE_ACCOUNT_JSON não configurada' }
+  }
+
+  const agora = Date.now()
+  if (earthEngineCache.data && agora - earthEngineCache.ts < EARTH_ENGINE_TTL) {
+    return { ...earthEngineCache.data, cache: 'hit' }
+  }
+
+  try {
+    const { stdout } = await execFileAsync(
+      pythonBin,
+      [join(__dirname, 'earth-engine-focos.py')],
+      {
+        env: process.env,
+        timeout: 30000,
+        maxBuffer: 2 * 1024 * 1024,
+      },
+    )
+    const dados = JSON.parse(stdout)
+    const resultado = {
+      focos: Array.isArray(dados.focos)
+        ? dados.focos.filter(f => pontoNoCidade(f.lat, f.lng))
+        : [],
+      fonte: 'EARTH-ENGINE-MULTISATELITE',
+      projeto: dados.projeto || null,
+      periodo: dados.periodo || null,
+      configurado: true,
+    }
+    earthEngineCache = { data: resultado, ts: agora }
+    return resultado
+  } catch (e) {
+    const detalhe = e?.stderr?.trim() || e?.message || 'falha desconhecida'
+    console.warn('[earth-engine] consulta falhou:', detalhe)
+    return { configurado: false, erro: detalhe }
+  }
+}
+
+async function buscarMonitoramentoEarthEngine() {
+  if (!process.env.EARTH_ENGINE_SERVICE_ACCOUNT_JSON) {
+    return { configurado: false, erro: 'EARTH_ENGINE_SERVICE_ACCOUNT_JSON não configurada' }
+  }
+
+  const agora = Date.now()
+  if (earthEngineMonitoramentoCache.data && agora - earthEngineMonitoramentoCache.ts < EARTH_ENGINE_MONITORAMENTO_TTL) {
+    return { ...earthEngineMonitoramentoCache.data, cache: 'hit' }
+  }
+
+  try {
+    const { stdout } = await execFileAsync(
+      pythonBin,
+      [join(__dirname, 'earth-engine-focos.py'), 'monitoramento'],
+      {
+        env: process.env,
+        timeout: 90000,
+        maxBuffer: 5 * 1024 * 1024,
+      },
+    )
+    const dados = JSON.parse(stdout)
+    const resultado = {
+      camadas: Array.isArray(dados.camadas) ? dados.camadas : [],
+      indicadores: Array.isArray(dados.indicadores) ? dados.indicadores : [],
+      erros: Array.isArray(dados.erros) ? dados.erros : [],
+      projeto: dados.projeto || null,
+      periodo: dados.periodo || null,
+      atualizadoEm: dados.atualizadoEm || new Date().toISOString(),
+      configurado: true,
+    }
+    earthEngineMonitoramentoCache = { data: resultado, ts: agora }
+    return resultado
+  } catch (e) {
+    const detalhe = e?.stderr?.trim() || e?.message || 'falha desconhecida'
+    console.warn('[earth-engine-monitoramento] consulta falhou:', detalhe)
+    return { configurado: false, camadas: [], indicadores: [], erros: [detalhe] }
+  }
+}
+
+app.get('/api/monitoramento-incendio', async (_req, res) => {
+  try {
+    const resultado = await buscarMonitoramentoEarthEngine()
+    res.json(resultado)
+  } catch (e) {
+    console.warn('[monitoramento-incendio]', e?.message)
+    res.status(502).json({ configurado: false, camadas: [], indicadores: [], erros: [e?.message || 'falha desconhecida'] })
+  }
+})
+
+app.get('/api/focos-incendio', async (_req, res) => {
+  try {
+    const firmsKey = process.env.FIRMS_MAP_KEY
+    const earthEngine = await buscarFocosEarthEngine()
+    const earthEngineFocos = earthEngine.focos || []
+    const earthEngineFontes = earthEngine.configurado ? [earthEngine.fonte] : []
+
+    if (!firmsKey) {
+      return res.json({
+        focos: earthEngineFocos,
+        configurado: earthEngine.configurado,
+        fontes: earthEngineFontes,
+        fontesMonitoramento: {
+          firms: false,
+          earthEngine: {
+            configurado: earthEngine.configurado,
+            erro: earthEngine.erro || null,
+          },
+        },
+        msg: 'FIRMS_MAP_KEY não configurada',
+      })
+    }
+
+    const now = Date.now()
+    const goesOk  = goesCache.data  && now - goesCache.ts  < GOES_TTL
+    const polarOk = polarCache.data && now - polarCache.ts < POLAR_TTL
+
+    // Cache duplo: se ambos válidos → retorna imediatamente sem chamar NASA
+    if (goesOk && polarOk) {
+      const focos = deduplicarFocos([
+        ...polarCache.data.focos,
+        ...goesCache.data.focos,
+        ...earthEngineFocos,
+      ])
+      return res.json({
+        focos,
+        configurado: true,
+        fontes: [...new Set([
+          ...polarCache.data.fontes,
+          ...goesCache.data.fontes,
+          ...earthEngineFontes,
+        ])],
+        atualizadoEm: goesCache.data.atualizadoEm,
+        fontesMonitoramento: {
+          firms: true,
+          earthEngine: {
+            configurado: earthEngine.configurado,
+            erro: earthEngine.erro || null,
+          },
+        },
+        cache: 'hit',
+      })
+    }
+
+    // bbox: oeste,sul,leste,norte — IBGE 3145901 com margem ~5 km
+    const bbox = '-43.85,-20.67,-43.53,-20.38'
+    const base = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${firmsKey}`
+    const SIG = 8000 // timeout por satélite (ms)
+
+    // Busca apenas o que precisa de atualização
+    const tarefas = []
+    if (!polarOk) {
+      tarefas.push(
+        fetch(`${base}/VIIRS_SNPP_NRT/${bbox}/1`,   { signal: AbortSignal.timeout(SIG) }).then(r => ({ r, nome: 'VIIRS-SNPP',  label: 'VIIRS-SNPP'  })),
+        fetch(`${base}/VIIRS_NOAA20_NRT/${bbox}/1`, { signal: AbortSignal.timeout(SIG) }).then(r => ({ r, nome: 'VIIRS-N20',   label: 'VIIRS-NOAA20' })),
+        fetch(`${base}/VIIRS_NOAA21_NRT/${bbox}/1`, { signal: AbortSignal.timeout(SIG) }).then(r => ({ r, nome: 'VIIRS-N21',   label: 'VIIRS-NOAA21' })),
+        fetch(`${base}/MODIS_NRT/${bbox}/1`,          { signal: AbortSignal.timeout(SIG) }).then(r => ({ r, nome: 'MODIS',       label: 'MODIS'        })),
+      )
+    }
+    if (!goesOk) {
+      tarefas.push(
+        fetch(`${base}/GOES_NRT/${bbox}/1`, { signal: AbortSignal.timeout(SIG) }).then(r => ({ r, nome: 'GOES', label: 'GOES' })),
+      )
+    }
+
+    const resultados = await Promise.allSettled(tarefas)
+    let novosPolar = [], novosGoes = [], fontesPolar = [], fontesGoes = []
+    const brutos = {}
+
+    for (const res of resultados) {
+      if (res.status !== 'fulfilled') { console.warn('[focos-incendio] fetch falhou:', res.reason?.message); continue }
+      const { r, nome, label } = res.value
+      if (!r.ok) continue
+      const focos = parsearFirmsCsv(await r.text(), nome)
+      brutos[nome] = focos.length
+      if (nome === 'GOES') { novosGoes = focos; fontesGoes.push(label) }
+      else                 { novosPolar.push(...focos); fontesPolar.push(label) }
+    }
+
+    // Atualiza caches seletivamente
+    if (!polarOk && fontesPolar.length > 0) {
+      const fp = novosPolar.filter(f => pontoNoCidade(f.lat, f.lng))
+      polarCache = { data: { focos: fp, fontes: fontesPolar }, ts: now }
+    }
+    if (!goesOk) {
+      const fg = novosGoes.filter(f => pontoNoCidade(f.lat, f.lng))
+      goesCache = { data: { focos: fg, fontes: fontesGoes }, ts: now }
+    }
+
+    const allFocos = [
+      ...(polarCache.data?.focos || []),
+      ...(goesCache.data?.focos  || []),
+      ...earthEngineFocos,
+    ]
+    const allFontes = [
+      ...(polarCache.data?.fontes || []),
+      ...(goesCache.data?.fontes  || []),
+      ...earthEngineFontes,
+    ]
+    const focos = deduplicarFocos(allFocos)
+    const atualizadoEm = new Date().toISOString()
+
+    console.log(
+      `[focos-incendio] SNPP:${brutos['VIIRS-SNPP']??'-'} N20:${brutos['VIIRS-N20']??'-'} N21:${brutos['VIIRS-N21']??'-'} MODIS:${brutos['MODIS']??'-'} GOES:${brutos['GOES']??'-'} → Ouro Branco: ${focos.length}`
+    )
+    res.json({
+      focos,
+      configurado: true,
+      fontes: [...new Set(allFontes)],
+      atualizadoEm,
+      fontesMonitoramento: {
+        firms: true,
+        earthEngine: {
+          configurado: earthEngine.configurado,
+          erro: earthEngine.erro || null,
+        },
+      },
+    })
+  } catch (e) {
+    console.warn('[focos-incendio]', e?.message)
+    res.status(502).json({ focos: [], configurado: true, fontes: [], erro: e?.message })
+  }
+})
+
+// ── SOS ─────────────────────────────────────────────────────────────────────
+async function processarSosMensagem(msg) {
+  const { id, agente, texto, audio, ts } = msg
+  if (!id || !agente || (!texto && !audio)) return
+  let existente = sosAtivos.get(id)
+  if (!existente) {
+    try {
+      const r = await query('SELECT * FROM sos_ativos_db WHERE id=$1', [id])
+      if (r.rows[0]) {
+        const row = r.rows[0]
+        existente = {
+          id: row.id, agente: row.agente,
+          lat: row.lat != null ? Number(row.lat) : null,
+          lng: row.lng != null ? Number(row.lng) : null,
+          bateria: row.bateria != null ? Number(row.bateria) : null,
+          audio: row.audio ?? null,
+          timestamp: Number(row.timestamp),
+          visualizadores: Array.isArray(row.visualizadores) ? row.visualizadores : [],
+          mensagens: Array.isArray(row.mensagens) ? row.mensagens : [],
+        }
+        sosAtivos.set(id, existente)
+      }
+    } catch (e) { console.warn('[SOS-MSG] fallback DB:', e?.message) }
+  }
+  if (!existente) return
+  const msgs = Array.isArray(existente.mensagens) ? existente.mensagens : []
+  const nova = { agente, texto: texto || '', ts: ts || Date.now() }
+  if (audio) nova.audio = audio
+  const novas = [...msgs, nova]
+  sosAtivos.set(id, { ...existente, mensagens: novas })
+  broadcastParaTodos({ tipo: 'sos-nova-mensagem', id, mensagens: novas }, null)
+  query('UPDATE sos_ativos_db SET mensagens=$1 WHERE id=$2', [JSON.stringify(novas), id])
+    .catch(e => console.warn('[SOS-DB] erro ao atualizar mensagens:', e?.message))
+}
+
+app.post('/api/sos', (req, res) => {
+  const msg = req.body
+  if (!msg || typeof msg !== 'object' || !msg.tipo || !msg.id) {
+    return res.status(400).json({ error: 'Mensagem SOS inválida' })
+  }
+  try {
+    if (msg.tipo === 'sos') processarSos(msg, null)
+    else if (msg.tipo === 'sos-audio') processarSosAudio(msg, null)
+    else if (msg.tipo === 'sos-cancelar') processarSosCancelar(msg, null)
+    else if (msg.tipo === 'sos-mensagem') { processarSosMensagem(msg).catch(() => {}) }
+    else return res.status(400).json({ error: `Tipo SOS desconhecido: ${msg.tipo}` })
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('POST /api/sos error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Relatório de Vistoria ────────────────────────────────────────────────────
+app.post('/api/relatorio-vistoria', async (req, res) => {
+  try {
+    let ocorrencia = req.body
+    if (!ocorrencia || typeof ocorrencia !== 'object') {
+      return res.status(400).json({ error: 'Dados da ocorrência não informados' })
+    }
+    if (ocorrencia.id && Number(ocorrencia.id) > 0) {
+      try {
+        const result = await query('SELECT * FROM ocorrencias WHERE id = $1', [Number(ocorrencia.id)])
+        if (result.rows[0]) ocorrencia = result.rows[0]
+      } catch (dbErr) {
+        console.warn('Não foi possível buscar dados frescos do banco:', dbErr.message)
+      }
+    }
+    const buffer = await gerarRelatorioVistoria(ocorrencia)
+    const filename = relatorioFileName(ocorrencia)
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`)
+    res.send(buffer)
+  } catch (err) {
+    console.error('POST /api/relatorio-vistoria error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Checklists Viatura ───────────────────────────────────────────────────────
+app.get('/api/checklists/meses', async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT DISTINCT SUBSTRING(data_checklist, 1, 7) AS mes
+       FROM checklists_viatura
+       WHERE data_checklist IS NOT NULL AND LENGTH(data_checklist) >= 7
+       ORDER BY mes DESC`
+    )
+    res.json(result.rows.map(r => r.mes).filter(Boolean))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.get('/api/checklists', async (req, res) => {
+  const CAMPOS_LEVES = 'id, data_checklist, km, placa, motorista, itens, observacoes, created_at, tem_foto_frontal, tem_foto_traseira, tem_foto_direita, tem_foto_esquerda'
+  const SQL_LEVE = `SELECT id, data_checklist, km, placa, motorista, itens, observacoes, created_at,
+    (foto_frontal IS NOT NULL AND foto_frontal <> '') AS tem_foto_frontal,
+    (foto_traseira IS NOT NULL AND foto_traseira <> '') AS tem_foto_traseira,
+    (foto_direita IS NOT NULL AND foto_direita <> '') AS tem_foto_direita,
+    (foto_esquerda IS NOT NULL AND foto_esquerda <> '') AS tem_foto_esquerda
+    FROM checklists_viatura`
+  try {
+    const { mes } = req.query
+    let result
+    if (mes) {
+      result = await query(`${SQL_LEVE} WHERE data_checklist LIKE $1 ORDER BY created_at DESC`, [`${mes}%`])
+    } else {
+      result = await query(`${SQL_LEVE} ORDER BY created_at DESC`)
+    }
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Busca fotos de múltiplos checklists em lote (para exportação Excel)
+app.get('/api/checklists/fotos-lote', async (req, res) => {
+  try {
+    const raw = String(req.query.ids || '')
+    const ids = raw.split(',').map(Number).filter(n => Number.isInteger(n) && n > 0)
+    if (ids.length === 0) return res.json([])
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',')
+    const result = await query(
+      `SELECT id, foto_frontal, foto_traseira, foto_direita, foto_esquerda, fotos_avarias
+       FROM checklists_viatura WHERE id IN (${placeholders})`,
+      ids
+    )
+    res.json(result.rows)
+  } catch (err) {
+    console.error('GET /api/checklists/fotos-lote error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.get('/api/checklists/:id', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM checklists_viatura WHERE id = $1', [req.params.id])
+    if (!result.rows[0]) return res.status(404).json({ error: 'Checklist não encontrado' })
+    res.json(result.rows[0])
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/checklists', async (req, res) => {
+  const { data_checklist, km, placa, motorista, fotos_avarias, foto_frontal, foto_traseira, foto_direita, foto_esquerda, itens, observacoes, assinatura_data } = req.body
+  try {
+    const result = await query(
+      `INSERT INTO checklists_viatura (data_checklist, km, placa, motorista, fotos_avarias, foto_frontal, foto_traseira, foto_direita, foto_esquerda, itens, observacoes, assinatura_data)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [data_checklist, km || null, placa || null, motorista || null,
+       JSON.stringify(Array.isArray(fotos_avarias) ? fotos_avarias : []),
+       foto_frontal || null, foto_traseira || null, foto_direita || null, foto_esquerda || null,
+       JSON.stringify(itens || {}), observacoes || null, assinatura_data || null]
+    )
+    broadcastParaTodos({ tipo: 'checklist_atualizado' })
+    res.status(201).json(result.rows[0])
+  } catch (err) {
+    console.error('POST /api/checklists error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/checklists/:id', async (req, res) => {
+  try {
+    await query('DELETE FROM checklists_viatura WHERE id = $1', [req.params.id])
+    broadcastParaTodos({ tipo: 'checklist_atualizado' })
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Materiais ────────────────────────────────────────────────────────────────
+function broadcastMateriaisAtualizados() {
+  broadcastParaTodos({ tipo: 'materiais_atualizados' })
+}
+function broadcastEmprestimosAtualizados() {
+  broadcastParaTodos({ tipo: 'emprestimos_atualizados' })
+}
+
+// Retorna lista de agentes online no momento (via REST, sem depender de timing do WS)
+app.get('/api/agentes-online', (_req, res) => {
+  res.json(getAgentesOnlineAtivos())
+})
+
+// Lista leve — SEM foto e foto_placa (só thumbnail) para não travar o carregamento
+app.get('/api/materiais', async (_req, res) => {
+  try {
+    const result = await query(
+      'SELECT id, nome, descricao, observacoes, foto_thumb, quantidade, created_at FROM materiais ORDER BY id'
+    )
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Fotos em lote para exportação Excel — aceita ?ids=cod1,cod2,...
+app.get('/api/materiais/fotos-lote', async (req, res) => {
+  try {
+    const raw = (req.query.ids || '').toString().trim()
+    if (!raw) return res.json([])
+    const ids = raw.split(',').map(s => s.trim()).filter(Boolean)
+    if (ids.length === 0) return res.json([])
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',')
+    const result = await query(
+      `SELECT id, foto, foto_placa FROM materiais WHERE id IN (${placeholders})`,
+      ids
+    )
+    res.json(result.rows)
+  } catch (err) {
+    console.error('GET /api/materiais/fotos-lote error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Busca fotos em lote direto do Supabase — fallback para quando o PostgreSQL local não tem as fotos
+app.get('/api/materiais/fotos-supabase', async (req, res) => {
+  try {
+    const sbUrl  = process.env.SUPABASE_URL  || ''
+    const sbKey  = process.env.SUPABASE_ANON_KEY || ''
+    if (!sbUrl || !sbKey) return res.status(503).json({ error: 'Supabase não configurado' })
+
+    const raw = (req.query.ids || '').toString().trim()
+    if (!raw) return res.json([])
+    const ids = raw.split(',').map(s => s.trim()).filter(Boolean)
+    if (ids.length === 0) return res.json([])
+
+    const sb = createSupabaseClient(sbUrl, sbKey)
+    const { data, error } = await sb
+      .from('materiais')
+      .select('id, foto, foto_placa, foto_thumb')
+      .in('id', ids)
+
+    if (error) {
+      console.error('Supabase fotos-lote error:', error.message)
+      return res.status(500).json({ error: error.message })
+    }
+    res.json(data ?? [])
+  } catch (err) {
+    console.error('GET /api/materiais/fotos-supabase error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Detalhe completo — inclui foto e foto_placa (carregado só quando o usuário abre o item)
+app.get('/api/materiais/:id', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM materiais WHERE id = $1', [req.params.id])
+    if (!result.rows[0]) return res.status(404).json({ error: 'Material não encontrado' })
+    res.json(result.rows[0])
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/materiais', async (req, res) => {
+  const { id, nome, descricao, observacoes, foto, foto_placa, foto_thumb, quantidade } = req.body || {}
+  if (!id || !nome) return res.status(400).json({ error: 'id e nome obrigatórios' })
+  try {
+    const result = await query(
+      `INSERT INTO materiais (id, nome, descricao, observacoes, foto, foto_placa, foto_thumb, quantidade)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id, nome, descricao, observacoes, foto_thumb, quantidade, created_at`,
+      [String(id).trim(), String(nome).trim(), descricao || null, observacoes || null,
+       foto || null, foto_placa || null, foto_thumb || null, Math.max(1, quantidade || 1)]
+    )
+    broadcastMateriaisAtualizados()
+    res.status(201).json(result.rows[0])
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: `Já existe material com código "${id}".` })
+    console.error('POST /api/materiais error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.patch('/api/materiais/:id', async (req, res) => {
+  const { nome, descricao, observacoes, foto, foto_placa, foto_thumb, quantidade } = req.body || {}
+  const sets = []
+  const vals = []
+  let idx = 1
+  if (typeof nome === 'string') { sets.push(`nome=$${idx++}`); vals.push(nome.trim()) }
+  if (descricao !== undefined) { sets.push(`descricao=$${idx++}`); vals.push(descricao || null) }
+  if (observacoes !== undefined) { sets.push(`observacoes=$${idx++}`); vals.push(observacoes || null) }
+  if (foto !== undefined) { sets.push(`foto=$${idx++}`); vals.push(foto || null) }
+  if (foto_placa !== undefined) { sets.push(`foto_placa=$${idx++}`); vals.push(foto_placa || null) }
+  if (foto_thumb !== undefined) { sets.push(`foto_thumb=$${idx++}`); vals.push(foto_thumb || null) }
+  if (quantidade !== undefined) { sets.push(`quantidade=$${idx++}`); vals.push(Math.max(1, quantidade || 1)) }
+  if (sets.length === 0) return res.status(400).json({ error: 'Nada para atualizar' })
+  vals.push(req.params.id)
+  try {
+    const result = await query(
+      `UPDATE materiais SET ${sets.join(', ')} WHERE id=$${idx}
+       RETURNING id, nome, descricao, observacoes, foto_thumb, quantidade, created_at`,
+      vals
+    )
+    if (!result.rows[0]) return res.status(404).json({ error: 'Material não encontrado' })
+    broadcastMateriaisAtualizados()
+    res.json(result.rows[0])
+  } catch (err) {
+    console.error('PATCH /api/materiais error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/materiais/:id', async (req, res) => {
+  try {
+    await query('DELETE FROM materiais WHERE id = $1', [req.params.id])
+    broadcastMateriaisAtualizados()
+    broadcastEmprestimosAtualizados()
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Empréstimos ──────────────────────────────────────────────────────────────
+app.get('/api/emprestimos', async (_req, res) => {
+  try {
+    const result = await query('SELECT * FROM emprestimos ORDER BY created_at DESC')
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/emprestimos', async (req, res) => {
+  const { material_id, material_codigo, material_nome, responsavel, cpf, secretaria, prazo_dias, quantidade, data_devolucao_prevista, condicao_equipamento, observacoes, agente_emprestador, assinatura_data, tipo } = req.body || {}
+  if (!material_id || !responsavel) {
+    return res.status(400).json({ error: 'material_id e responsavel obrigatórios' })
+  }
+  try {
+    const tipoValido = tipo === 'manutencao' ? 'manutencao' : 'emprestimo'
+    const result = await query(
+      `INSERT INTO emprestimos (material_id, material_codigo, material_nome, responsavel, cpf, secretaria, prazo_dias, quantidade, data_devolucao_prevista, condicao_equipamento, observacoes, agente_emprestador, assinatura_data, tipo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+      [material_id, material_codigo || material_id, material_nome || '',
+       String(responsavel).trim(), cpf || null, secretaria || null,
+       Number(prazo_dias) || 7, Math.max(1, quantidade || 1),
+       data_devolucao_prevista || null, condicao_equipamento || null,
+       observacoes || null, agente_emprestador || null, assinatura_data || null, tipoValido]
+    )
+    broadcastEmprestimosAtualizados()
+    res.status(201).json(result.rows[0])
+  } catch (err) {
+    console.error('POST /api/emprestimos error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.patch('/api/emprestimos/:id/devolver', async (req, res) => {
+  const id = parseInt(req.params.id, 10)
+  if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' })
+  const { devolvido_em, devolvido_obs, devolvido_recebedor, devolvido_foto } = req.body || {}
+  try {
+    const result = await query(
+      `UPDATE emprestimos SET devolvido_em=$1, devolvido_obs=$2, devolvido_recebedor=$3, devolvido_foto=$4
+       WHERE id=$5 RETURNING *`,
+      [devolvido_em || new Date().toISOString(), devolvido_obs || null,
+       devolvido_recebedor || null, devolvido_foto || null, id]
+    )
+    if (!result.rows[0]) return res.status(404).json({ error: 'Empréstimo não encontrado' })
+    broadcastEmprestimosAtualizados()
+    res.json(result.rows[0])
+  } catch (err) {
+    console.error('PATCH /api/emprestimos error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Generic PATCH for emprestimos (devolução via /api/emprestimos/:id)
+app.patch('/api/emprestimos/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10)
+  if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' })
+  const { devolvido_em, devolvido_obs, devolvido_recebedor, devolvido_foto } = req.body || {}
+  try {
+    const result = await query(
+      `UPDATE emprestimos SET devolvido_em=$1, devolvido_obs=$2, devolvido_recebedor=$3, devolvido_foto=$4
+       WHERE id=$5 RETURNING *`,
+      [devolvido_em || new Date().toISOString(), devolvido_obs || null,
+       devolvido_recebedor || null, devolvido_foto || null, id]
+    )
+    if (!result.rows[0]) return res.status(404).json({ error: 'Empréstimo não encontrado' })
+    broadcastEmprestimosAtualizados()
+    res.json(result.rows[0])
+  } catch (err) {
+    console.error('PATCH /api/emprestimos/:id error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Equipamentos em Campo ────────────────────────────────────────────────────
+app.get('/api/equipamentos-campo', async (_req, res) => {
+  try {
+    const result = await query('SELECT * FROM equipamentos_campo ORDER BY created_at DESC')
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/equipamentos-campo', async (req, res) => {
+  const { material_id, material_nome, fotos, latitude, longitude, rua, numero, bairro, observacao, quantidade, prazo_dias, data_recolha_prevista, status, agente } = req.body || {}
+  if (!material_id) return res.status(400).json({ error: 'material_id obrigatório' })
+  try {
+    const result = await query(
+      `INSERT INTO equipamentos_campo (material_id, material_nome, fotos, latitude, longitude, rua, numero, bairro, observacao, quantidade, prazo_dias, data_recolha_prevista, status, agente)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+      [material_id, material_nome || null,
+       fotos ? JSON.stringify(fotos) : null,
+       latitude ?? null, longitude ?? null,
+       rua || null, numero || null, bairro || null, observacao || null,
+       Math.max(1, quantidade || 1), prazo_dias || null,
+       data_recolha_prevista || null, status || 'ativo', agente || null]
+    )
+    broadcastParaTodos({ tipo: 'campo_atualizado' })
+    res.status(201).json(result.rows[0])
+  } catch (err) {
+    console.error('POST /api/equipamentos-campo error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.patch('/api/equipamentos-campo/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10)
+  if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' })
+  const { status, latitude, longitude } = req.body || {}
+  try {
+    let result
+    if (latitude !== undefined || longitude !== undefined) {
+      // Atualização de GPS
+      result = await query(
+        'UPDATE equipamentos_campo SET latitude=$1, longitude=$2 WHERE id=$3 RETURNING *',
+        [latitude ?? null, longitude ?? null, id]
+      )
+    } else {
+      result = await query(
+        'UPDATE equipamentos_campo SET status=$1 WHERE id=$2 RETURNING *',
+        [status || 'devolvido', id]
+      )
+    }
+    if (!result.rows[0]) return res.status(404).json({ error: 'Registro não encontrado' })
+    broadcastParaTodos({ tipo: 'campo_atualizado' })
+    res.json(result.rows[0])
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/equipamentos-campo/:id', async (req, res) => {
+  try {
+    await query('DELETE FROM equipamentos_campo WHERE id = $1', [req.params.id])
+    broadcastParaTodos({ tipo: 'campo_atualizado' })
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Push subscriptions ───────────────────────────────────────────────────────
+app.post('/api/push-subscriptions', async (req, res) => {
+  const { id, agente, endpoint, p256dh, auth } = req.body || {}
+  if (!id || !endpoint || !p256dh || !auth) {
+    return res.status(400).json({ error: 'id, endpoint, p256dh e auth obrigatórios' })
+  }
+  try {
+    await query(
+      `INSERT INTO push_subscriptions (id, agente, endpoint, p256dh, auth, updated_at)
+       VALUES ($1,$2,$3,$4,$5,NOW())
+       ON CONFLICT (id) DO UPDATE SET agente=$2, endpoint=$3, p256dh=$4, auth=$5, updated_at=NOW()`,
+      [String(id), agente || null, endpoint, p256dh, auth]
+    )
+    res.json({ success: true })
+  } catch (err) {
+    console.error('POST /api/push-subscriptions error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/push-subscriptions/:id', async (req, res) => {
+  try {
+    await query('DELETE FROM push_subscriptions WHERE id = $1', [req.params.id])
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Send SOS Push ────────────────────────────────────────────────────────────
+app.post('/api/send-sos-push', async (req, res) => {
+  if (!vapidConfigured) {
+    return res.status(503).json({ error: 'VAPID keys não configuradas no servidor' })
+  }
+  const body = req.body || {}
+  if (!body.id || !body.agente) {
+    return res.status(400).json({ error: 'id e agente obrigatórios' })
+  }
+  let subs
+  try {
+    const result = await query('SELECT id, endpoint, p256dh, auth, agente FROM push_subscriptions')
+    subs = result.rows
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
+  const localPart = body.lat != null && body.lng != null
+    ? `📍 ${Number(body.lat).toFixed(5)}, ${Number(body.lng).toFixed(5)}`
+    : 'Localização indisponível'
+  const payload = JSON.stringify({
+    title: '🆘 SOS — Defesa Civil',
+    body: `${body.agente} acionou o SOS. ${localPart}`,
+    tag: `sos-${body.id}`,
+    sosId: body.id,
+    url: '/',
+  })
+  const enviados = []
+  const removidos = []
+  await Promise.all(subs.map(async (s) => {
+    if (body.excludeId && s.id === body.excludeId) return
+    if (body.agente && s.agente && s.agente === body.agente) return
+    try {
+      await webpush.sendNotification(
+        { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+        payload,
+        { TTL: 60 * 30, urgency: 'high' },
+      )
+      enviados.push(s.id)
+    } catch (err) {
+      const status = err && err.statusCode
+      if (status === 404 || status === 410) removidos.push(s.id)
+      else console.warn('[send-sos-push] erro envio:', s.id, status)
+    }
+  }))
+  if (removidos.length > 0) {
+    await query('DELETE FROM push_subscriptions WHERE id = ANY($1)', [removidos])
+  }
+  res.json({ enviados: enviados.length, removidos: removidos.length })
+})
+
+// ── SOS Ativos (REST fallback para wsClient) ─────────────────────────────────
+app.get('/api/sos-ativos', async (_req, res) => {
+  try {
+    const limiteTs = Date.now() - SOS_TTL_MS
+    const result = await query('SELECT * FROM sos_ativos_db WHERE timestamp > $1', [limiteTs])
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Tiles proxy ──────────────────────────────────────────────────────────────
+const OSM_SUBDOMAINS = ['a', 'b', 'c']
+let _osmIdx = 0
+
+app.get('/api/tiles/:z/:x/:y', async (req, res) => {
+  const { z, x, y } = req.params
+  const sub = OSM_SUBDOMAINS[_osmIdx++ % 3]
+  const tileUrl = `https://${sub}.tile.openstreetmap.org/${z}/${x}/${y}.png`
+  try {
+    const response = await fetch(tileUrl, {
+      headers: {
+        'User-Agent': 'DefesaCivilOuroBranco/1.0 (defesacivil@ourobranco.mg.gov.br)',
+        'Accept': 'image/png,image/*,*/*;q=0.8',
+      },
+      signal: AbortSignal.timeout(10000),
+    })
+    if (!response.ok) { res.status(response.status).end(); return }
+    const buffer = await response.arrayBuffer()
+    res.setHeader('Content-Type', 'image/png')
+    res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800')
+    res.end(Buffer.from(buffer))
+  } catch {
+    res.status(503).end()
+  }
+})
+
+// ── Geocode proxy ────────────────────────────────────────────────────────────
+const geocodeCache = new Map()
+const GEOCODE_TTL_MS = 60 * 60 * 1000
+
+app.get('/api/geocode', async (req, res) => {
+  const q = String(req.query.q || '').trim()
+  if (q.length < 2) return res.json([])
+  const chave = q.toLowerCase()
+  const agora = Date.now()
+  const cached = geocodeCache.get(chave)
+  if (cached && (agora - cached.ts) < GEOCODE_TTL_MS) return res.json(cached.data)
+  try {
+    const queryFinal = /ouro branco|mg|minas/i.test(q) ? q : `${q}, Ouro Branco, MG, Brasil`
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(queryFinal)}&format=json&limit=6&addressdetails=0&countrycodes=br&accept-language=pt-BR`
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'DefesaCivilOuroBranco/1.0', 'Accept-Language': 'pt-BR' },
+    })
+    if (!resp.ok) return res.status(502).json({ erro: 'Nominatim retornou ' + resp.status })
+    const data = await resp.json()
+    const arr = Array.isArray(data) ? data : []
+    const simplificado = arr.map(d => ({
+      display: d.display_name,
+      lat: parseFloat(d.lat),
+      lng: parseFloat(d.lon),
+    })).filter(d => Number.isFinite(d.lat) && Number.isFinite(d.lng))
+    geocodeCache.set(chave, { ts: agora, data: simplificado })
+    res.json(simplificado)
+  } catch (err) {
+    console.error('Erro no geocode:', err.message)
+    res.status(503).json({ erro: 'Geocodificação indisponível' })
+  }
+})
+
+// ── Route proxy ──────────────────────────────────────────────────────────────
+app.get('/api/rota', async (req, res) => {
+  const from = String(req.query.from || '').split(',').map(parseFloat)
+  const to = String(req.query.to || '').split(',').map(parseFloat)
+  if (from.length !== 2 || to.length !== 2 || from.some(n => !Number.isFinite(n)) || to.some(n => !Number.isFinite(n))) {
+    return res.status(400).json({ erro: 'Parâmetros from/to inválidos (use lat,lng)' })
+  }
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson`
+    const resp = await fetch(url, { headers: { 'User-Agent': 'DefesaCivilOuroBranco/1.0' } })
+    if (!resp.ok) return res.status(502).json({ erro: 'OSRM retornou ' + resp.status })
+    const json = await resp.json()
+    const r = json?.routes?.[0]
+    if (!r) return res.status(404).json({ erro: 'Sem rota disponível' })
+    const coords = (r.geometry.coordinates || []).map(([lng, lat]) => [lat, lng])
+    res.json({ coords, km: r.distance / 1000, min: Math.round(r.duration / 60) })
+  } catch (err) {
+    console.error('Erro na rota:', err.message)
+    res.status(503).json({ erro: 'Roteamento indisponível' })
+  }
+})
+
+// ── Weather ──────────────────────────────────────────────────────────────────
+const OURO_BRANCO_LAT = -20.5195
+const OURO_BRANCO_LON = -43.6983
+const INMET_ESTACAO_OB = 'A513'
+let climaCache = null
+let climaCacheTs = 0
+const CLIMA_TTL_MS = 10 * 60 * 1000
+
+async function buscarDadosInmet() {
+  for (let diasAtras = 0; diasAtras <= 3; diasAtras++) {
+    const d = new Date()
+    d.setDate(d.getDate() - diasAtras)
+    const data = d.toISOString().slice(0, 10)
+    const url = `https://apitempo.inmet.gov.br/estacao/${data}/${data}/${INMET_ESTACAO_OB}`
+    try {
+      const resp = await fetch(url, { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(6000) })
+      if (resp.status !== 200) continue
+      const json = await resp.json()
+      if (!Array.isArray(json) || json.length === 0) continue
+      const validos = json.filter(r => r.TEM_INS != null && r.TEM_INS !== '')
+      if (validos.length === 0) continue
+      const reg = validos[validos.length - 1]
+      return {
+        temperatura: reg.TEM_INS != null ? parseFloat(reg.TEM_INS) : null,
+        umidade: reg.UMD_INS != null ? parseFloat(reg.UMD_INS) : null,
+        ventoVel: reg.VEN_VEL != null ? parseFloat(reg.VEN_VEL) : null,
+        ventoKmh: reg.VEN_VEL != null ? Math.round(parseFloat(reg.VEN_VEL) * 3.6) : null,
+        ventoDir: reg.VEN_DIR != null ? parseFloat(reg.VEN_DIR) : null,
+        chuva: reg.CHUVA != null ? parseFloat(reg.CHUVA) : null,
+        horario: reg.HR_MEDICAO || reg.DT_MEDICAO || null,
+        fonte: 'INMET',
+        estacaoId: INMET_ESTACAO_OB,
+      }
+    } catch { continue }
+  }
+  return null
+}
+
+async function buscarDadosOpenMeteo() {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${OURO_BRANCO_LAT}&longitude=${OURO_BRANCO_LON}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation&timezone=America%2FSao_Paulo&wind_speed_unit=ms`
+  const resp = await fetch(url, { signal: AbortSignal.timeout(8000) })
+  if (!resp.ok) throw new Error(`Open-Meteo: ${resp.status}`)
+  const json = await resp.json()
+  const c = json.current
+  const ventoVel = c.wind_speed_10m != null ? parseFloat(c.wind_speed_10m) : null
+  return {
+    temperatura: c.temperature_2m != null ? parseFloat(c.temperature_2m) : null,
+    umidade: c.relative_humidity_2m != null ? parseFloat(c.relative_humidity_2m) : null,
+    ventoVel,
+    ventoKmh: ventoVel != null ? Math.round(ventoVel * 3.6) : null,
+    ventoDir: c.wind_direction_10m != null ? parseFloat(c.wind_direction_10m) : null,
+    chuva: c.precipitation != null ? parseFloat(c.precipitation) : null,
+    horario: c.time || null,
+    fonte: 'INMET',
+    estacaoId: INMET_ESTACAO_OB,
+  }
+}
+
+app.get('/api/tempo', async (_req, res) => {
+  try {
+    const agora = Date.now()
+    if (climaCache && (agora - climaCacheTs) < CLIMA_TTL_MS) return res.json(climaCache)
+    let dados = await buscarDadosInmet()
+    if (!dados) dados = await buscarDadosOpenMeteo()
+    const resultado = { ...dados, atualizadoEm: agora }
+    climaCache = resultado
+    climaCacheTs = agora
+    res.json(resultado)
+  } catch (err) {
+    console.error('Erro ao buscar dados climáticos:', err.message)
+    if (climaCache) return res.json({ ...climaCache, cache: true })
+    res.status(503).json({ erro: 'Serviço climático indisponível' })
+  }
+})
+
+// ── Proxy de imagens do Supabase Storage (evita CORS no browser) ─────────────
+// Usado pela exportação Excel para baixar fotos do Supabase Storage no servidor
+app.get('/api/proxy-imagem', async (req, res) => {
+  const url = (req.query.url || '').toString().trim()
+  if (!url) return res.status(400).json({ error: 'url obrigatória' })
+  // Permite apenas URLs do Supabase Storage por segurança
+  if (!url.startsWith('https://') || !url.includes('supabase.co/storage')) {
+    return res.status(403).json({ error: 'url não permitida' })
+  }
+  try {
+    const headers = {}
+    const anonKey = process.env.SUPABASE_ANON_KEY
+    if (anonKey) headers['Authorization'] = `Bearer ${anonKey}`
+    const response = await fetch(url, { headers })
+    if (!response.ok) return res.status(response.status).end()
+    const contentType = response.headers.get('content-type') || 'image/jpeg'
+    res.set('Content-Type', contentType)
+    res.set('Cache-Control', 'private, max-age=3600')
+    const buffer = await response.arrayBuffer()
+    res.send(Buffer.from(buffer))
+  } catch (err) {
+    console.error('proxy-imagem error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ── Serve frontend build ─────────────────────────────────────────────────────
+const distPath = join(__dirname, '..', 'dist')
+if (existsSync(distPath)) {
+  app.use('/assets', express.static(join(distPath, 'assets'), { maxAge: '1y', immutable: true }))
+  app.use(express.static(distPath, {
+    setHeaders(res, filePath) {
+      if (filePath.endsWith('sw.js') || filePath.endsWith('index.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+      }
+    },
+  }))
+  app.get(/(.*)/, (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+    res.sendFile(join(distPath, 'index.html'))
+  })
+}
+
+const PORT = parseInt(process.env.PORT || '5000', 10)
+
+try {
+  await initDb()
+  httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`API Defesa Civil rodando na porta ${PORT}`)
+    console.log(`WebSocket de rastreamento ativo em ws://0.0.0.0:${PORT}/ws`)
+  })
+  httpServer.on('error', (err) => {
+    console.error('Server error:', err)
+    process.exit(1)
+  })
+} catch (err) {
+  console.error('Erro ao inicializar o servidor:', err)
+  process.exit(1)
+}

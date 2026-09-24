@@ -1,0 +1,154 @@
+Aqui estão os códigos estruturados e detalhados para o sistema de SOS Crítico. Como você vai pedir para o Replit implementar, organizei em blocos lógicos: o Gatilho (Mobile), a Transmissão (Socket) e a Recepção no Mapa (Visual).
+
+1. O Gatilho: Captura de Hardware e Coleta de Dados
+Este código detecta os botões, mede a bateria e grava o áudio ambiente por 10 segundos.
+
+JavaScript
+// SISTEMA DE GATILHO SOS - FRONTEND (App do Agente)
+const SOS_Manager = {
+    isRecording: false,
+    
+    async dispararSOS() {
+        console.log("Iniciando Protocolo de Emergência...");
+        
+        // 1. Capturar Coordenadas Atuais
+        const pos = await new Promise((res) => navigator.geolocation.getCurrentPosition(res));
+        const { latitude, longitude } = pos.coords;
+
+        // 2. Obter Nível de Bateria
+        const battery = await navigator.getBattery();
+        const bateriaNivel = Math.round(battery.level * 100);
+
+        // 3. Gravação Automática de Áudio (10 segundos)
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        let audioChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/ogg' });
+            // Converter áudio para Base64 para envio rápido via Socket
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = () => {
+                const base64Audio = reader.result;
+                
+                // 4. Enviar tudo via Socket.io
+                socket.emit('agente_em_perigo', {
+                    agente: "Miguel - Defesa Civil",
+                    lat: latitude,
+                    lng: longitude,
+                    bateria: bateriaNivel,
+                    audio: base64Audio,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+            };
+        };
+
+        mediaRecorder.start();
+        setTimeout(() => mediaRecorder.stop(), 10000); // Grava por 10s
+    }
+};
+
+// Escutador dos botões de Volume (Volume Up + Volume Down simultâneos)
+let keysPressed = {};
+document.addEventListener('keydown', (e) => {
+    keysPressed[e.key] = true;
+    if (keysPressed['VolumeUp'] && keysPressed['VolumeDown']) {
+        SOS_Manager.dispararSOS();
+    }
+});
+document.addEventListener('keyup', (e) => delete keysPressed[e.key]);
+2. O Servidor: Distribuição Instantânea (Python + Flask-SocketIO)
+O Replit precisa deste código no main.py para avisar todos os outros celulares no exato momento do SOS.
+
+Python
+# BACKEND - TRANSMISSÃO EM TEMPO REAL
+from flask import Flask
+from flask_socketio import SocketIO, emit
+
+app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+@socketio.on('agente_em_perigo')
+def handle_sos(data):
+    # Log no servidor para auditoria
+    print(f"ALERTA: Agente {data['agente']} emitiu SOS!")
+    
+    # Reenvia para TODOS os agentes conectados (Broadcast)
+    # Inclui o áudio, bateria e posição
+    emit('receber_alerta_sos', data, broadcast=True)
+
+if __name__ == '__main__':
+    socketio.run(app, port=5000)
+3. A Recepção: Notificação e Rota no Mapa
+Este código roda no celular dos outros agentes. Ele faz o celular vibrar, toca a sirene e desenha a rota de resgate.
+
+JavaScript
+// RECEPTOR DE ALERTAS - FRONTEND (App da Equipe)
+
+socket.on('receber_alerta_sos', (data) => {
+    // 1. Notificação Sonora e Vibração
+    const sirene = new Audio('sirene_emergencia.mp3');
+    sirene.loop = true;
+    sirene.play();
+    if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+
+    // 2. Criar ícone de alerta no mapa (Piscante)
+    const sosMarker = L.marker([data.lat, data.lng], {
+        icon: L.divIcon({ className: 'marker-sos-piscante' }) 
+    }).addTo(map);
+
+    // 3. Popup com Info de Bateria e Player de Áudio
+    const popupContent = `
+        <div class="sos-popup">
+            <h3 style="color:red">🚨 SOS: ${data.agente}</h3>
+            <p><b>Bateria:</b> ${data.bateria}%</p>
+            <p><b>Hora:</b> ${data.timestamp}</p>
+            <audio controls src="${data.audio}"></audio>
+            <br><br>
+            <button onclick="iniciarResgate(${data.lat}, ${data.lng})">TRAÇAR ROTA DE RESGATE</button>
+            <button onclick="pararSirene(sirene)">SILENCIAR</button>
+        </div>
+    `;
+    sosMarker.bindPopup(popupContent).openPopup();
+
+    // 4. Centralizar o mapa no colega em perigo
+    map.flyTo([data.lat, data.lng], 16);
+});
+
+// Função para traçar rota automática
+function iniciarResgate(destLat, destLng) {
+    L.Routing.control({
+        waypoints: [
+            L.latLng(minhaPosLat, minhaPosLng), // Minha posição GPS
+            L.latLng(destLat, destLng)          // Posição do SOS
+        ],
+        lineOptions: { styles: [{ color: 'red', weight: 8, opacity: 0.8 }] },
+        language: 'pt-BR'
+    }).addTo(map);
+}
+4. Estilo Visual (CSS para o Replit)
+Para o ícone do agente ficar piscando em vermelho no mapa:
+
+CSS
+/* CSS PARA O MAPA */
+.marker-sos-piscante {
+    background-color: red;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    border: 3px solid white;
+    animation: pulse-red 0.8s infinite;
+}
+
+@keyframes pulse-red {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(255, 0, 0, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+}
+
+.sos-popup {
+    min-width: 200px;
+    text-align: center;
+}

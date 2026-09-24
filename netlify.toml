@@ -1,0 +1,96 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[build.environment]
+  NODE_VERSION = "20"
+  VITE_USE_SUPABASE = "true"
+  VITE_SUPABASE_URL = "https://lhmjpioaoqwkchtomnla.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobWpwaW9hb3F3a2NodG9tbmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzODIxMjUsImV4cCI6MjEwMzk1ODEyNX0.Dfpr36GW46a47_PkwEh98OYKsSM3S1Y4aHorTqphWxw"
+  VITE_VAPID_PUBLIC_KEY = "BDR2WpHgL7IN1NNdJv67HEMbyeUEnDRvgcnyfdWaopzkAOqa6EDYSbkXroYJ8CC_kaPjGEm8q5CCEn0KUqt3kmE"
+
+[[redirects]]
+  from = "/api/planet-focos"
+  to = "/.netlify/functions/planet-focos"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/focos-incendio"
+  to = "/.netlify/functions/focos-incendio"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/send-sos-push"
+  to = "/.netlify/functions/send-sos-push"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Service-Worker-Allowed = "/"
+
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[redirects]]
+  from = "/api/monitoramento-incendio"
+  to = "/.netlify/functions/earth-engine-focos"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/tempo"
+  to = "/.netlify/functions/tempo"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/radar-chuva"
+  to = "/.netlify/functions/radar-chuva"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/rrqpe"
+  to = "/.netlify/functions/rrqpe"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/monitoramento-cnl"
+  to = "/.netlify/functions/monitoramento-cnl"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/monitoramento-cnl/cotas"
+  to = "/.netlify/functions/monitoramento-cnl-cotas"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/geocode"
+  to = "/.netlify/functions/geocode"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/rota"
+  to = "/.netlify/functions/rota"
+  status = 200
+  force = true

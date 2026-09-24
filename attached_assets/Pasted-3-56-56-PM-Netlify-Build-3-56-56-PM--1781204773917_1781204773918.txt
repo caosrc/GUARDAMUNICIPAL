@@ -1,0 +1,83 @@
+3:56:56 PM: Netlify Build                                                 
+3:56:56 PM: ────────────────────────────────────────────────────────────────
+3:56:56 PM: ​
+3:56:56 PM: ❯ Version
+3:56:56 PM:   @netlify/build 35.15.0
+3:56:56 PM: ​
+3:56:56 PM: ❯ Flags
+3:56:56 PM:   accountId: 6a2b0254dfed56eb9eeda0be
+3:56:56 PM:   baseRelDir: true
+3:56:56 PM:   buildId: 6a2b044db4fac3f743f4df23
+3:56:56 PM:   deployId: 6a2b044db4fac3f743f4df25
+3:56:56 PM: ​
+3:56:56 PM: ❯ Current directory
+3:56:56 PM:   /opt/build/repo
+3:56:56 PM: ​
+3:56:56 PM: ❯ Config file
+3:56:56 PM:   /opt/build/repo/netlify.toml
+3:56:56 PM: ​
+3:56:56 PM: ❯ Context
+3:56:56 PM:   production
+3:56:56 PM: ​
+3:56:56 PM: build.command from netlify.toml                               
+3:56:56 PM: ────────────────────────────────────────────────────────────────
+3:56:56 PM: ​
+3:56:56 PM: $ npm install --omit=optional --no-audit --no-fund && npm run build
+3:56:57 PM: npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+3:56:57 PM: npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+3:58:07 PM: Failed during stage 'building site': Build script returned non-zero exit code: 2 (https://ntl.fyi/exit-code-2)
+3:58:07 PM: npm error Exit handler never called!
+3:58:07 PM: npm error This is an error with npm itself. Please report this error at:
+3:58:07 PM: npm error   <https://github.com/npm/cli/issues&gt;
+3:58:07 PM: npm error A complete log of this run can be found in: /opt/buildhome/.npm/_logs/2026-06-11T18_56_56_227Z-debug-0.log
+3:58:07 PM: > defesacivil@0.0.0 build
+3:58:07 PM: > vite build
+3:58:07 PM: sh: 1: vite: not found
+3:58:07 PM: ​
+3:58:07 PM: "build.command" failed                                        
+3:58:07 PM: ────────────────────────────────────────────────────────────────
+3:58:07 PM: ​
+3:58:07 PM:   Error message
+3:58:07 PM:   Command failed with exit code 127: npm install --omit=optional --no-audit --no-fund && npm run build (https://ntl.fyi/exit-code-127)
+3:58:07 PM: ​
+3:58:07 PM:   Error location
+3:58:07 PM:   In build.command from netlify.toml:
+3:58:07 PM:   npm install --omit=optional --no-audit --no-fund && npm run build
+3:58:07 PM: ​
+3:58:07 PM:   Resolved config
+3:58:07 PM:   build:
+3:58:07 PM:     command: npm install --omit=optional --no-audit --no-fund && npm run build
+3:58:07 PM:     commandOrigin: config
+3:58:07 PM:     environment:
+3:58:07 PM:       - NODE_VERSION
+3:58:07 PM:       - VITE_USE_SUPABASE
+3:58:07 PM:       - VITE_SUPABASE_URL
+3:58:07 PM:       - VITE_SUPABASE_ANON_KEY
+3:58:07 PM:       - VITE_VAPID_PUBLIC_KEY
+3:58:07 PM:     publish: /opt/build/repo/dist
+3:58:07 PM:     publishOrigin: config
+3:58:07 PM:   functionsDirectory: /opt/build/repo/netlify/functions
+3:58:07 PM:   headers:
+3:58:07 PM:     - for: /sw.js
+3:58:07 PM:       values:
+3:58:07 PM:         Cache-Control: public, max-age=0, must-revalidate
+3:58:07 PM:         Service-Worker-Allowed: /
+3:58:07 PM:     - for: /manifest.json
+3:58:07 PM:       values:
+3:58:07 PM:         Cache-Control: public, max-age=0, must-revalidate
+3:58:07 PM:     - for: /assets/*
+      values:
+        Cache-Control: public, max-age=31536000, immutable
+  headersOrigin: config
+  redirects:
+    - force: true
+      from: /api/send-sos-push
+      status: 200
+      to: /.netlify/functions/send-sos-push
+    - from: /*
+      status: 200
+      to: /index.html
+  redirectsOrigin: config
+3:58:07 PM: Build failed due to a user error: Build script returned non-zero exit code: 2
+3:58:07 PM: Failing build: Failed to build site
+3:58:07 PM: Finished processing build request in 2m29.78s

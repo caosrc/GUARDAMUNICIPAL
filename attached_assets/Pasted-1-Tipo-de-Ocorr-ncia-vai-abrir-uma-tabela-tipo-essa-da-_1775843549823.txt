@@ -1,0 +1,50 @@
+1 - Tipo de Ocorrência, vai abrir uma tabela tipo essa da foto com as opções:
+Vistoria
+Diligência
+Apoio
+Outro
+
+Quando selecionar na lista vai abrir a opção 2 - Natureza da Ocorrência
+Opções:
+Árvore Gerando Risco (Caída ou Não)
+Rompimento de Cabo de Energia
+Rompimento de Cabo de Telefonia
+Queda de Poste (Total ou Parcial)
+Óleo na Pista
+Incêndio em Área Urbana
+Incêndio em Área Rural
+Alagamento
+Inundação
+Queda de Estrutura (se marcar essa opção, vai abrir uma outra gama de opção perguntando qual é a estrutura? e um quadro para o usuário escrever qual o tipo de estrutura
+Deslizamento de Massa/Rocha
+Processo Erosivo
+Apreensão e Captura de Animal (se marcar essa opção, vai abrir uma outra gama de opção perguntando qual é o animal? e um quadro para o usuário escrever qual o tipo de animal
+Abelhas/Marimbondo
+Vistoria Residencial
+Talude em Risco
+
+3 - Nível de Risco
+Baixo   Médio    Alto
+
+4 - Status
+Ativo   Resolvido
+
+5 - Fotos
+Adicionar fotos - ao clicar, vai poder tirar as fotos
+
+6 - Localização
+Botão de Obter GPS
+ou campo para escrever o endereço
+
+7 - Proprietário/Morador
+Vai ter um quadro para colocar o nome da pessoa
+
+8 - Observações
+Vai ter o quadro para escrever as observações
+
+9 - Salvar a Ocorrência
+
+10 - Mapa de Ocorrências
+Vai ter um mapa do openstreetmap com as marcações no mapa de acordo com as geolocalizações marcadas no GPS com o tipo de ocorrência, o marcador do map pode ter cor diferente para cada tipo de natureza de ocorrência, se puder colocar ícones de acordo com cada ocorrência, ex: arvore gerando risco, aparecer o marcador que é uma arvore, incêndio, aparecer o marcador fogo e etc...
+
+Gostaria que usasse o banco de dados do Replit para armazenas os dados dos cadastro e fotos. No marcado vai ter a natureza da ocorrência e quando clicar nele, vai aparecer todas as informações que foram marcadas e escritas da ocorrência, no final vai ter um botão para salvar em KMZ, vai salvar um arquivo em KMZ para ser aberto no Google Earth

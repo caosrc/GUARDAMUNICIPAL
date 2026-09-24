@@ -1,0 +1,81 @@
+Me responda só em portugues. No app, na parte superior aparece 0 em campo, quero que essa função mude para Agenters online, vai mostrar a quantidade de agentes que estão conectado online no app, não é do gps e sim quem está online com o app aberto.
+
+Estou com um app produzido no replit, enviavo o codigo no github e com a base de dados no supabase e publicado no netlify. Estou usando o openstreetmap e coloquei uma funcção apra quem ativar o gps que vai aparecer para os outros que estão usando o app, mas está dando um delay quando a pessoa ativa o gps, demora paracer pro outro usuario visualizar a posição dele e também tem hora que desativa o gps e ainda aparece que ta ativo para outro usuario. Gostaria de uma lógica para acabar com esse delay para funcionar de forma csincorna e que outro usuaria ver a tempo. qualquer coisa colocar tipo uma conferencia no sistema de tanto em tanto tempo para ver se o gps ta ativo ou não. quero que melhore isso!
+
+USE ESSAS SOLUÇÕES: combinar 3 estratégias
+1. 🔄 Atualização em tempo real (Realtime)
+
+O Supabase já tem isso nativo.
+
+Em vez de ficar dando fetch, você deve assinar mudanças:
+
+supabase
+  .channel('locations')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'locations' },
+    (payload) => {
+      console.log('Mudança:', payload)
+      atualizarMapa(payload)
+    }
+  )
+  .subscribe()
+
+👉 Isso elimina boa parte do delay, porque o outro usuário recebe instantaneamente.
+
+2. ⏱️ Heartbeat (checagem periódica inteligente)
+
+Aqui está o pulo do gato que resolve o problema do GPS “fantasma”.
+
+Cada usuário deve enviar atualizações frequentes tipo:
+
+setInterval(() => {
+  if (gpsAtivo) {
+    enviarLocalizacao({
+      lat,
+      lng,
+      last_seen: new Date(),
+      is_active: true
+    })
+  }
+}, 5000) // a cada 5s
+
+No banco, você salva:
+
+lat
+lng
+last_seen
+is_active
+3. 🧠 Regra de expiração (anti-delay / anti-fantasma)
+
+Na hora de mostrar no mapa:
+
+const AGORA = new Date()
+const LIMITE = 10000 // 10 segundos
+
+usuarios.forEach(user => {
+  const ultimo = new Date(user.last_seen)
+  
+  const ativo = (AGORA - ultimo) < LIMITE && user.is_active
+
+  if (ativo) {
+    mostrarNoMapa(user)
+  } else {
+    removerDoMapa(user)
+  }
+})
+
+👉 Isso resolve:
+
+GPS desligado mas ainda visível
+Conexão perdida
+Delay de atualização
+🔥 Extra (muito importante)
+Quando usuário desliga GPS:
+
+Envie imediatamente:
+
+enviarLocalizacao({
+  is_active: false,
+  last_seen: new Date()
+})

@@ -1,0 +1,17 @@
+.exportacao-fiscalizacao { display: flex; align-items: center; gap: 16px; margin: 0 auto 14px; padding: 12px 14px; border: 1px solid rgba(71, 91, 89, .16); border-radius: 12px; background: #fbfbf7; box-shadow: 0 3px 12px rgba(24, 57, 62, .04); }
+.exportacao-fiscalizacao-copy { display: flex; min-width: 190px; flex-direction: column; gap: 3px; }
+.exportacao-fiscalizacao-kicker { color: #c16b3d; font: 500 9px 'DM Mono', monospace; letter-spacing: .12em; text-transform: uppercase; }
+.exportacao-fiscalizacao-copy strong { color: #193d46; font-size: 12px; }
+.exportacao-fiscalizacao-copy > span:last-child { color: #71817d; font: 9px 'DM Mono', monospace; }
+.exportacao-fiscalizacao-actions { display: flex; flex: 1; justify-content: flex-end; gap: 7px; }
+.exportacao-fiscalizacao-actions button { min-height: 34px; padding: 7px 10px; color: #28616f; border: 1px solid #abc6c5; border-radius: 7px; background: #f5faf7; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.exportacao-fiscalizacao-actions button:hover:not(:disabled) { color: #fff; border-color: #28616f; background: #28616f; }
+.exportacao-fiscalizacao-actions button:nth-child(3) { color: #9b6032; border-color: #d8bb9b; }
+.exportacao-fiscalizacao-actions button:nth-child(3):hover:not(:disabled) { color: #fff; background: #9b6032; }
+.exportacao-fiscalizacao-actions b { margin-right: 3px; font-size: 13px; font-weight: 500; }
+.exportacao-fiscalizacao-message { color: #47735e; font-size: 10px; line-height: 1.3; }
+@media (max-width: 680px) {
+  .exportacao-fiscalizacao { align-items: stretch; flex-direction: column; gap: 10px; }
+  .exportacao-fiscalizacao-actions { justify-content: stretch; }
+  .exportacao-fiscalizacao-actions button { flex: 1; padding-inline: 6px; }
+}

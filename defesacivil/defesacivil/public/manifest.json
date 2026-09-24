@@ -1,0 +1,31 @@
+{
+  "name": "Defesa Civil Ouro Branco - MG",
+  "short_name": "Defesa Civil OB-MG",
+  "description": "Sistema de Vistorias da Defesa Civil de Ouro Branco - MG",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#1a4b8c",
+  "theme_color": "#1a4b8c",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "productivity"],
+  "prefer_related_applications": false,
+  "screenshots": []
+}

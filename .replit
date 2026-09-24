@@ -1,0 +1,75 @@
+modules = ["nodejs-20", "web", "python-3.12"]
+[agent]
+expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
+integrations = ["javascript_database:1.0.0", "replitmail:1.0.0"]
+
+[nix]
+channel = "stable-25_05"
+packages = ["nano", "netlify-cli"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --no-package-lock --silent && npm run build && node server/index.js"
+waitForPort = 5000
+
+[[ports]]
+localPort = 3001
+externalPort = 3001
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3000
+
+[[ports]]
+localPort = 5173
+externalPort = 5173
+
+[[ports]]
+localPort = 23636
+externalPort = 3002
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["node", "server/index.js"]
+build = ["npx", "vite", "build"]
+
+[userenv]
+
+[userenv.shared]
+VITE_USE_SUPABASE = "true"
+VAPID_SUBJECT = "mailto:defesacivilob@gmail.com"
+VAPID_PUBLIC_KEY = "BM-gE-wibZiGkyOPTZVRfjL0cVY7pzBfDTIAHaSTZDOoiq03OiTaUYN8RfKHCfpyrkoML2EukgmbqwrT6HxBkBk"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqZHBzcGxiY3Jsa2VrZGZubmxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5ODExOTcsImV4cCI6MjA5MjU1NzE5N30.Y5-_Z6Yg99i0hHQBZjTMxBFo0TONMCiicHnjkyj_AH8"
+SUPABASE_URL = "https://sjdpsplbcrlkekdfnnlj.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobWpwaW9hb3F3a2NodG9tbmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzODIxMjUsImV4cCI6MjEwMzk1ODEyNX0.Dfpr36GW46a47_PkwEh98OYKsSM3S1Y4aHorTqphWxw"
+VITE_SUPABASE_URL = "https://lhmjpioaoqwkchtomnla.supabase.co"
+
+[userenv.development]
+
+[userenv.production]
+PORT = "5000"
+NODE_ENV = "production"

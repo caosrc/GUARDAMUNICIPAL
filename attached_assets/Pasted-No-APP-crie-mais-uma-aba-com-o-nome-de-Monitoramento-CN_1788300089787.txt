@@ -1,0 +1,384 @@
+No APP crie mais uma aba com o nome de Monitoramento CNL e seja criativo com o menu para monitar as cheias do rio e estações.
+const express = require("express");
+const axios = require("axios");
+const cheerio = require("cheerio");
+const path = require("path");
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+
+const CEMADEN_URL =
+  "https://resources.cemaden.gov.br/graficos/interativo/grafico_CEMADEN.php?idpcd=6622&uf=MG";
+
+app.get("/api/rio-bananeiras", async (req, res) => {
+  try {
+    const response = await axios.get(CEMADEN_URL, {
+      timeout: 15000,
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      }
+    });
+
+    const $ = cheerio.load(response.data);
+
+    const texto = $("body").text().replace(/\s+/g, " ").trim();
+
+    res.json({
+      sucesso: true,
+      estacao: {
+        id: "6622",
+        codigo: "311830410H",
+        nome: "Rio Bananeiras",
+        municipio: "Conselheiro Lafaiete",
+        uf: "MG"
+      },
+      dados_brutos: texto,
+      atualizado_em: new Date().toISOString(),
+      fonte: CEMADEN_URL
+    });
+
+  } catch (error) {
+    console.error("Erro CEMADEN:", error.message);
+
+    res.status(500).json({
+      sucesso: false,
+      erro: "Não foi possível consultar o CEMADEN",
+      mensagem: error.message
+    });
+  }
+});
+
+app.get("/api/status", (req, res) => {
+  res.json({
+    online: true,
+    sistema: "Monitoramento Rio Bananeiras",
+    horario: new Date().toISOString()
+  });
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
+
+2. Instale as dependências
+No Shell do Replit:
+
+npm install express axios cheerio
+
+3. Crie public/index.html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Monitoramento Rio Bananeiras</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #07111f;
+      color: white;
+    }
+
+    header {
+      background: #0d1b2a;
+      padding: 20px;
+      text-align: center;
+      border-bottom: 1px solid #26384d;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    header p {
+      color: #9fb3c8;
+      margin-bottom: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    .card {
+      background: #102235;
+      border: 1px solid #26384d;
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 18px;
+    }
+
+    .nivel {
+      font-size: 42px;
+      font-weight: bold;
+      margin: 15px 0;
+      color: #45b7ff;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 8px 14px;
+      border-radius: 20px;
+      background: #176b3a;
+      color: #fff;
+      font-weight: bold;
+    }
+
+    .info {
+      margin: 10px 0;
+      color: #b9c9d9;
+    }
+
+    .valor {
+      color: white;
+      font-weight: bold;
+    }
+
+    .fonte {
+      margin-top: 20px;
+      color: #7890a8;
+      font-size: 13px;
+    }
+
+    .atualizacao {
+      text-align: center;
+      margin-top: 20px;
+      color: #8fa4b8;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #9ed6ff;
+      font-size: 12px;
+      max-height: 300px;
+      overflow: auto;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>🌧️ Centro de Monitoramento</h1>
+  <p>Conselheiro Lafaiete - MG</p>
+</header>
+
+<div class="container">
+
+  <div class="grid">
+
+    <div class="card">
+      <h2>🌊 Rio Bananeiras</h2>
+
+      <div class="nivel" id="nivel">
+        --
+      </div>
+
+      <div class="status" id="status">
+        CONSULTANDO...
+      </div>
+
+      <div class="info">
+        Estação:
+        <span class="valor">CEMADEN 6622</span>
+      </div>
+
+      <div class="info">
+        Código:
+        <span class="valor">311830410H</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🌧️ Chuva</h2>
+
+      <div class="info">
+        1 hora:
+        <span class="valor" id="chuva1">--</span>
+      </div>
+
+      <div class="info">
+        6 horas:
+        <span class="valor" id="chuva6">--</span>
+      </div>
+
+      <div class="info">
+        12 horas:
+        <span class="valor" id="chuva12">--</span>
+      </div>
+
+      <div class="info">
+        24 horas:
+        <span class="valor" id="chuva24">--</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📡 Estação</h2>
+
+      <div class="info">
+        Município:
+        <span class="valor">
+          Conselheiro Lafaiete
+        </span>
+      </div>
+
+      <div class="info">
+        Estado:
+        <span class="valor">
+          Minas Gerais
+        </span>
+      </div>
+
+      <div class="info">
+        Status:
+        <span class="valor" id="online">
+          Verificando...
+        </span>
+      </div>
+
+      <div class="info">
+        Última consulta:
+        <span class="valor" id="horario">
+          --
+        </span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card" style="margin-top:20px">
+
+    <h2>📊 Dados recebidos do CEMADEN</h2>
+
+    <pre id="dados">
+Consultando CEMADEN...
+    </pre>
+
+  </div>
+
+  <div class="atualizacao">
+    Atualização automática a cada 5 minutos
+  </div>
+
+</div>
+
+<script>
+
+async function carregarDados() {
+
+  try {
+
+    const resposta =
+      await fetch("/api/rio-bananeiras");
+
+    const dados =
+      await resposta.json();
+
+    if (!dados.sucesso) {
+      throw new Error(dados.erro);
+    }
+
+    document.getElementById("online")
+      .textContent = "ONLINE";
+
+    document.getElementById("status")
+      .textContent = "DADOS RECEBIDOS";
+
+    document.getElementById("dados")
+      .textContent = dados.dados_brutos;
+
+    document.getElementById("horario")
+      .textContent =
+        new Date(
+          dados.atualizado_em
+        ).toLocaleString("pt-BR");
+
+  } catch (erro) {
+
+    console.error(erro);
+
+    document.getElementById("online")
+      .textContent = "SEM CONEXÃO";
+
+    document.getElementById("status")
+      .textContent = "SEM DADOS";
+
+  }
+
+}
+
+carregarDados();
+
+setInterval(
+  carregarDados,
+  5 * 60 * 1000
+);
+
+</script>
+
+</body>
+</html>
+
+⚠️ Porém, tem uma limitação importante
+Esse primeiro código não deve ser usado ainda como versão final.
+
+A página do CEMADEN é dinâmica. Portanto, simplesmente baixar o HTML com axios pode retornar a estrutura da página sem os valores que o navegador carrega posteriormente.
+
+Para fazer o que você realmente quer — nível do Rio Bananeiras + chuva + todas as estações + vento + umidade + temperatura + mapa + atualização automática — precisamos descobrir as requisições de dados que o site faz por trás.
+
+A arquitetura final seria:
+
+CEMADEN
+   │
+   ├── Rio Bananeiras 6622
+   ├── Pluviômetros
+   └── Estações hidrológicas
+          │
+          ▼
+       BACKEND
+        Replit
+          │
+          ├── Banco de dados
+          ├── Histórico
+          └── Alertas
+          │
+          ▼
+       DASHBOARD
+          │
+          ├── 🌊 Rio
+          ├── 🌧️ Chuva
+          ├── 🌡️ Temperatura
+          ├── 💧 Umidade
+          ├── 💨 Vento
+          ├── 🗺️ Mapa
+          └── 🚨 Alertas
+
+Se você quiser fazer isso direito, eu posso pesquisar agora o endpoint que o resources.cemaden.gov.br usa por trás dessa página idpcd=6622 e montar o código já puxando o valor real do nível do Rio Bananeiras, em vez de apenas mostrar o HTML da página.

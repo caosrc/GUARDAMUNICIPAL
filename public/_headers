@@ -1,0 +1,29 @@
+# Defesa Civil Ouro Branco — cabeçalhos para Netlify
+
+# HTML e Service Worker nunca podem ficar cacheados, senão atualizações podem
+# continuar apontando para chunks antigos do Vite.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+  Service-Worker-Allowed: /
+
+# Manifest também precisa atualizar rápido
+/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Assets com hash do Vite podem ser cacheados por muito tempo
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Ícones e logos do PWA podem ser cacheados moderadamente
+/icon-192.png
+  Cache-Control: public, max-age=86400
+/icon-512.png
+  Cache-Control: public, max-age=86400
+/apple-touch-icon.png
+  Cache-Control: public, max-age=86400
