@@ -4221,7 +4221,7 @@ export default function Planejamento() {
   }, [planos])
 
   async function carregarDoServidor() {
-    // Supabase (Netlify + Replit com VITE_USE_SUPABASE=true)
+    // Caminho externo desativado nesta cópia; usa o endpoint Express abaixo.
     if (supabaseDisponivel) {
       try {
         const { data, error } = await supabase
@@ -4278,7 +4278,7 @@ export default function Planejamento() {
 
   async function sincServidor(plano: Plano) {
     const payload = planoParaSB(plano)
-    // Supabase (Netlify + Replit com VITE_USE_SUPABASE=true)
+    // Caminho externo desativado nesta cópia; usa o endpoint Express abaixo.
     if (supabaseDisponivel) {
       try {
         if (plano.status === 'concluido') {
@@ -4312,7 +4312,7 @@ export default function Planejamento() {
   }
 
   async function deletarServidor(id: string) {
-    // Supabase (Netlify + Replit com VITE_USE_SUPABASE=true)
+    // Caminho externo desativado nesta cópia; usa o endpoint Express abaixo.
     if (supabaseDisponivel) {
       try {
         await supabase.from('planejamentos').delete().eq('id', id)

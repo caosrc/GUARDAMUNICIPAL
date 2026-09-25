@@ -6,7 +6,7 @@ integrations = ["javascript_database:1.0.0", "replitmail:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["nano", "netlify-cli"]
+packages = ["nano"]
 
 [workflows]
 runButton = "Project"
@@ -29,7 +29,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm install --no-package-lock --silent && npm run build && node server/index.js"
+args = "pnpm install --frozen-lockfile --silent && npm run build && node server/index.js"
 waitForPort = 5000
 
 [[ports]]
@@ -60,13 +60,8 @@ build = ["npx", "vite", "build"]
 [userenv]
 
 [userenv.shared]
-VITE_USE_SUPABASE = "true"
 VAPID_SUBJECT = "mailto:defesacivilob@gmail.com"
 VAPID_PUBLIC_KEY = "BM-gE-wibZiGkyOPTZVRfjL0cVY7pzBfDTIAHaSTZDOoiq03OiTaUYN8RfKHCfpyrkoML2EukgmbqwrT6HxBkBk"
-SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqZHBzcGxiY3Jsa2VrZGZubmxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5ODExOTcsImV4cCI6MjA5MjU1NzE5N30.Y5-_Z6Yg99i0hHQBZjTMxBFo0TONMCiicHnjkyj_AH8"
-SUPABASE_URL = "https://sjdpsplbcrlkekdfnnlj.supabase.co"
-VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxobWpwaW9hb3F3a2NodG9tbmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzODIxMjUsImV4cCI6MjEwMzk1ODEyNX0.Dfpr36GW46a47_PkwEh98OYKsSM3S1Y4aHorTqphWxw"
-VITE_SUPABASE_URL = "https://lhmjpioaoqwkchtomnla.supabase.co"
 
 [userenv.development]
 

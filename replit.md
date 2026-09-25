@@ -1,22 +1,22 @@
 # Defesa Civil Conselheiro Lafaiete — App de Gerenciamento de Ocorrências
 
 ## Run & Operate
-- **Development + Production**: `npm install && npm run build && node server/index.js`
+- **Development + Production**: `pnpm install --frozen-lockfile && npm run build && node server/index.js`
 - The Express server builds the Vite frontend and serves everything on **port 5000**
 - `npm run dev` — Vite dev server (port 5000) with proxy to Express on port 3001 (dev only)
 - `npm run build` — build frontend for production only
 
-Required env vars (all set in Replit shared env / secrets):
+Required environment variables:
 - `DATABASE_URL` — Replit PostgreSQL (auto-provisioned; do not set manually)
-- `VAPID_PUBLIC_KEY` — VAPID public key (shared env var, already set)
-- `VAPID_PRIVATE_KEY` — VAPID private key (**secret** — needed for push notifications)
-- `VAPID_SUBJECT` — mailto: contact for VAPID (already set)
+- `VAPID_PUBLIC_KEY` — VAPID public key (if push notifications are used)
+- `VAPID_PRIVATE_KEY` — VAPID private key (secret, if push notifications are used)
+- `VAPID_SUBJECT` — mailto: contact for VAPID (if push notifications are used)
 - `PORT` — Express server port (set to 5000)
 - `NODE_ENV` — set to `production`
-- `EARTH_ENGINE_SERVICE_ACCOUNT_JSON` — Secret containing the complete Google Cloud service-account JSON key
-- `EARTH_ENGINE_PROJECT` — optional Earth Engine/Google Cloud project ID; when omitted, uses the `project_id` from the JSON key
-- `FIRMS_MAP_KEY` — Secret for NASA FIRMS active-fire data
-- `PLANET_API_KEY` — Secret for Planet satellite imagery queries
+- `EARTH_ENGINE_SERVICE_ACCOUNT_JSON` — Secret containing the complete Google Cloud service-account JSON key (optional)
+- `EARTH_ENGINE_PROJECT` — optional Earth Engine/Google Cloud project ID
+- `FIRMS_MAP_KEY` — Secret for NASA FIRMS active-fire data (optional)
+- `PLANET_API_KEY` — Secret for Planet satellite imagery queries (optional)
 
 ## Stack
 - **Frontend**: React 19 + TypeScript + Vite
@@ -31,9 +31,9 @@ Required env vars (all set in Replit shared env / secrets):
 
 ## Where things live
 - `server/index.js` — Express API + WebSocket server + DB init (`initDb`)
-- `src/api.ts` — CRUD for ocorrências (Express primary, Supabase disabled)
+- `src/api.ts` — CRUD for ocorrências through Express
 - `src/matApi.ts` — CRUD for materiais/emprestimos/campo (Express primary)
-- `src/supabaseClient.ts` — client desativado nesta cópia; `supabaseDisponivel=false`
+- `src/supabaseClient.ts` — compatibility stub permanently disabled; no external database client
 - `src/wsClient.ts` — WebSocket client (connects to /ws)
 - `src/pushNotifications.ts` — Web Push subscription via Express `/api/push-subscriptions`
 - `src/components/` — React components per feature
@@ -41,12 +41,10 @@ Required env vars (all set in Replit shared env / secrets):
 - `public/sw.js` — Service Worker (PWA, map tile cache)
 - `attached_assets/` — report template (.docx)
 
-## Architecture on Replit and Netlify
-- **Netlify + Supabase** is the production path: the Vite frontend reads and writes the Supabase project configured by `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
-- Netlify Functions provide the server-only proxy for CEMADEN, weather/radar and protected external APIs
-- The Express server and Replit PostgreSQL remain a local development fallback; they are not the production data store
-- Before the first Netlify deploy, execute `supabase/supabase-completo.sql` in the configured Supabase project's SQL Editor. For an existing database, at minimum execute all files in `supabase/migrations/`
-- The production build is `npm run build`, with `dist` published and Functions loaded from `netlify/functions`
+## Architecture on Replit
+- The Express server and Replit PostgreSQL are the only application backend and data store for this copy
+- The Vite frontend uses relative `/api` and `/ws` endpoints served by Express
+- This copy has no Netlify deploy configuration and does not connect to Supabase
 
 ## Product
 - Register and manage civil defense incidents with photos and GPS
@@ -64,9 +62,6 @@ Required env vars (all set in Replit shared env / secrets):
 - Portuguese (pt-BR) UI
 
 ## Gotchas
-- `VITE_USE_SUPABASE=true` is required for Netlify. The Supabase URL and anon key are public frontend configuration; never put a service-role key in the browser
-- Supabase tables and RLS policies must exist before the Netlify app can save data. The anon key cannot create tables, so run the SQL files in `supabase/` once in the Supabase SQL Editor
-- Production on Netlify: `npm run build`, publish `dist`, and load Functions from `netlify/functions`
 - Push notifications require `VAPID_PRIVATE_KEY` secret to be set in Replit secrets
 - Earth Engine requires the service account to have Earth Engine access and the `Service Usage Consumer` role on the Google Cloud project
 - O botão **Chuva** mostra precipitação observada pelo radar RainViewer, atualizada automaticamente a cada 5 minutos, com legenda e limite municipal tracejado. A leitura em mm do centro é um resumo do Open-Meteo e não substitui pluviômetro local.
@@ -75,11 +70,6 @@ Required env vars (all set in Replit shared env / secrets):
 - O monitoramento do Earth Engine usa `FireMask >= 7` para MODIS/VIIRS e `Area > 0` para GOES-19 FDCF (cadência de 10 minutos); não interpreta chuva, radar, vegetação ou cicatriz de queimada como incêndio ativo
 - O mapa consulta os focos NASA FIRMS e as camadas do Earth Engine para Conselheiro Lafaiete; a conta de serviço do Earth Engine precisa do acesso ao projeto e do papel Service Usage Consumer
 - O painel CEMADEN lista todas as estações do município com os acumulados móveis de 1, 6, 12, 24, 48, 72 e 96 horas, além da leitura “Último”
-
-## Netlify setup
-- Configure the Netlify site base directory as the repository root, build command as `npm run build`, publish directory as `dist`, and Functions directory as `netlify/functions`
-- Keep `VITE_USE_SUPABASE=true`, `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in the Netlify environment for both build and Functions
-- The route redirects for every Function are duplicated in `netlify.toml` and `public/_redirects`; keep both in sync so the SPA fallback does not return `index.html` for an API request
 
 ## Pointers
 - DB schema: `server/index.js` → `initDb()` function

@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
-
 type DisabledSupabaseClient = {
   from: (...args: unknown[]) => any
   channel: (...args: unknown[]) => any
@@ -8,24 +6,16 @@ type DisabledSupabaseClient = {
 }
 
 const supabaseDisabled = (): never => {
-  throw new Error('Supabase está desativado nesta cópia do aplicativo.')
+  throw new Error('Este aplicativo usa somente a API local do servidor.')
 }
 
-const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').trim()
-const supabaseAnonKey = String(import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim()
-const usarSupabase = String(import.meta.env.VITE_USE_SUPABASE || '').toLowerCase() === 'true'
+// Esta cópia do aplicativo é exclusivamente local e não possui conexão
+// com o projeto Supabase usado por outro aplicativo.
+export const supabaseDisponivel = false
 
-// O build do Netlify injeta essas variáveis VITE_* no frontend. No Replit,
-// quando elas não existem, o app continua usando o servidor Express local.
-export const supabaseDisponivel = usarSupabase && Boolean(supabaseUrl && supabaseAnonKey)
-
-export const supabase = supabaseDisponivel
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-  : ({
-      from: supabaseDisabled,
-      channel: supabaseDisabled,
-      removeChannel: supabaseDisabled,
-      functions: { invoke: supabaseDisabled },
-    } as DisabledSupabaseClient)
+export const supabase = {
+  from: supabaseDisabled,
+  channel: supabaseDisabled,
+  removeChannel: supabaseDisabled,
+  functions: { invoke: supabaseDisabled },
+} as DisabledSupabaseClient

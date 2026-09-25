@@ -5,7 +5,7 @@
  *  - App shell (HTML/CSS/JS/ícones)  → cache-first com revalidação em segundo plano
  *  - Navegação (rotas SPA)           → network-first com fallback para index.html cacheado
  *  - Tiles do mapa (OSM/Esri)        → cache-first, só baixa o que falta
- *  - Supabase / Open-Meteo / APIs    → sempre rede (nunca cachear dados dinâmicos)
+ *  - APIs externas e do servidor     → sempre rede (nunca cachear dados dinâmicos)
  *
  * Eventos de push (notificação tipo WhatsApp para SOS):
  *  - push                            → mostra Notification mesmo com o app fechado
