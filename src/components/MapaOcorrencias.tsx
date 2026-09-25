@@ -656,6 +656,7 @@ function LimiteZoomCamada({ camada }: { camada: CamadaMapa }) {
 
 // ── Componente principal ────────────────────────────────────────
 export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExterno, onDestinoExternoConsumido, equipamentosCampo = [], alertasSos, onVerDetalheCampo }: Props) {
+  const mostrarPainelChuva = false
   const [selecionada, setSelecionada] = useState<Ocorrencia | null>(null)
   const [legendaAberta, setLegendaAberta] = useState(false)
   const [camadaMapa, setCamadaMapa] = useState<CamadaMapa>('padrao')
@@ -1748,6 +1749,7 @@ export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExte
         >
           🛰️ Satélite
         </button>
+        {mostrarPainelChuva && (
         <div className="mapa-chuva-wrap">
           <button
             className={`mapa-camada-btn mapa-chuva-btn ${mostrarChuva ? 'ativo' : ''}`}
@@ -1897,6 +1899,7 @@ export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExte
             </div>
           )}
         </div>
+        )}
         <button
           className={`mapa-camada-btn ${mostrarMateriais ? 'ativo' : ''}`}
           onClick={() => {

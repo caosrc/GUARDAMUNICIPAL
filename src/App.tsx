@@ -767,7 +767,6 @@ export default function App() {
         import('./components/Dashboard'),
         import('./components/MateriaisEmprestimos'),
         import('./components/Planejamento'),
-        import('./components/MonitoramentoCNL'),
         import('./components/Curral'),
       ]).catch(() => { /* sem internet ou bloqueado, ignora */ })
     }, 1500)
