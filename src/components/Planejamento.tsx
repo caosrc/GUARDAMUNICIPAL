@@ -9,7 +9,7 @@ import { ativarGps, desativarGps, subscribeGps, getEstadoGps, getDispositivoIdGl
 import { supabase, supabaseDisponivel } from '../supabaseClient'
 import { saveFotoCampoPendente, getFotosCampoPendentes, removeFotoCampoPendente, clearFotosCampoPendentesPlano } from '../offline'
 import { salvarFotoNoDispositivo } from '../utils'
-import RadarGM from './RadarDC'
+import RadarGM, { type RadarPatrulhamentoDraft } from './RadarDC'
 
 const ORGAOS_EMPENHO: { categoria: string; emoji: string; orgaos: { emoji: string; nome: string }[] }[] = [
   { categoria: 'Segurança Pública', emoji: '🚔', orgaos: [
@@ -4525,6 +4525,40 @@ export default function Planejamento() {
     sincServidor(plano)
   }, [])
 
+  const salvarPatrulhamentoRadar = useCallback((draft: RadarPatrulhamentoDraft) => {
+    const plano: Plano = {
+      id: gerarId(),
+      tipo: 'simulado',
+      nome: draft.nome,
+      descricao: draft.descricao,
+      local: draft.local,
+      dataInicio: draft.dataInicio,
+      dataFim: draft.dataInicio,
+      horario: draft.horario,
+      horarioFim: draft.horarioFim,
+      publicoEstimado: '',
+      status: 'planejado',
+      equipe: [],
+      agentesDefesaCivil: draft.agentes.map(normalizarNomeAgente),
+      materiais: [],
+      itensMapa: draft.itensMapa,
+      pontosExtras: [],
+      lat: draft.lat,
+      lng: draft.lng,
+      observacoes: draft.observacoes,
+      risco: 'baixo',
+      criadoPor: getNomeAgenteGlobal() || getAgenteLogado() || '',
+      criadoEm: new Date().toISOString(),
+      confirmacoes: [],
+      fotosEvento: [],
+      conclusao: '',
+    }
+    salvarPlano(plano)
+    // A tela de TV deve continuar exibindo o mapa operacional após o cadastro.
+    setAberto(null)
+    setSubAba('radar')
+  }, [salvarPlano])
+
   const atualizarPlano = useCallback((plano: Plano) => {
     notificarAgentesNovos(plano)
     planosProtegidos.set(plano.id, Date.now())
@@ -4607,6 +4641,7 @@ export default function Planejamento() {
            <RadarGM
              patrulhamentos={patrulhamentosRadar}
              onNovoPatrulhamento={data => iniciarNovoPlano('simulado', data)}
+             onCriarPatrulhamento={salvarPatrulhamentoRadar}
              onAbrirPatrulhamento={id => {
                const plano = planos.find(item => item.id === id)
                if (plano) setAberto(plano)

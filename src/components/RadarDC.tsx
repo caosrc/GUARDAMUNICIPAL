@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import './RadarDC.css'
 import './RadarDCResponsive.css'
 import 'leaflet/dist/leaflet.css'
@@ -31,7 +31,21 @@ export type RadarPatrulhamento = {
   lng: number | null
   status: string
   agentesDefesaCivil?: string[]
-  itensMapa: Array<{ id: string; tipo: string; emoji: string; lat: number; lng: number; obs?: string }>
+  itensMapa: RadarItemMapa[]
+}
+export type RadarItemMapa = { id: string; tipo: string; emoji: string; lat: number; lng: number; obs?: string }
+export type RadarPatrulhamentoDraft = {
+  dataInicio: string
+  nome: string
+  descricao: string
+  horario: string
+  horarioFim: string
+  local: string
+  lat: number
+  lng: number
+  agentes: string[]
+  itensMapa: RadarItemMapa[]
+  observacoes: string
 }
 type Atividade = {
   id: number; agente: string; hora: string; placa?: string; natureza?: string
@@ -215,6 +229,333 @@ function RadarMapInvalidateSize({ tv }: { tv: boolean }) {
   return null
 }
 
+type PosicaoRadar = { id: string; nome: string; lat: number; lng: number; precisao: number; ts: number }
+
+function usePosicoesRadar(): PosicaoRadar[] {
+  const [posicoes, setPosicoes] = useState<Map<string, PosicaoRadar>>(new Map())
+
+  useEffect(() => {
+    const atualizar = (msg: Record<string, unknown>) => {
+      const lat = Number(msg.lat)
+      const lng = Number(msg.lng)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+      const id = String(msg.id || '')
+      if (!id) return
+      const posicao: PosicaoRadar = {
+        id,
+        nome: String(msg.nome || 'Agente em campo'),
+        lat,
+        lng,
+        precisao: Number(msg.precisao || 0),
+        ts: Date.now(),
+      }
+      setPosicoes(prev => new Map(prev).set(id, posicao))
+    }
+    const remover = (msg: Record<string, unknown>) => {
+      const id = String(msg.id || '')
+      if (!id) return
+      setPosicoes(prev => {
+        const proximo = new Map(prev)
+        proximo.delete(id)
+        return proximo
+      })
+    }
+    const iniciais = (msg: Record<string, unknown>) => {
+      const lista = Array.isArray(msg.posicoes) ? msg.posicoes : []
+      setPosicoes(prev => {
+        const proximo = new Map(prev)
+        lista.forEach(item => {
+          if (!item || typeof item !== 'object') return
+          const registro = item as Record<string, unknown>
+          const lat = Number(registro.lat)
+          const lng = Number(registro.lng)
+          const id = String(registro.id || '')
+          if (!id || !Number.isFinite(lat) || !Number.isFinite(lng)) return
+          proximo.set(id, {
+            id,
+            nome: String(registro.nome || 'Agente em campo'),
+            lat,
+            lng,
+            precisao: Number(registro.precisao || 0),
+            ts: Date.now(),
+          })
+        })
+        return proximo
+      })
+    }
+    const offPosicao = wsOn('posicao', atualizar)
+    const offIniciais = wsOn('posicoes_iniciais', iniciais)
+    const offRemover = wsOn('remover', remover)
+    const timer = window.setInterval(() => {
+      const limite = Date.now() - 20_000
+      setPosicoes(prev => {
+        const proximo = new Map(prev)
+        for (const [id, posicao] of proximo) {
+          if (posicao.ts < limite) proximo.delete(id)
+        }
+        return proximo.size === prev.size ? prev : proximo
+      })
+    }, 5_000)
+    return () => {
+      offPosicao()
+      offIniciais()
+      offRemover()
+      window.clearInterval(timer)
+    }
+  }, [])
+
+  return Array.from(posicoes.values())
+}
+
+function RadarMapDropEvents({
+  onMapClick,
+  onDrop,
+}: {
+  onMapClick: (lat: number, lng: number) => void
+  onDrop: (id: string, lat: number, lng: number) => void
+}) {
+  const map = useMap()
+  useMapEvents({
+    click: event => onMapClick(event.latlng.lat, event.latlng.lng),
+  })
+  useEffect(() => {
+    const container = map.getContainer()
+    const dragOver = (event: DragEvent) => {
+      event.preventDefault()
+      container.classList.add('radar-patrol-map-dragging')
+    }
+    const dragLeave = () => container.classList.remove('radar-patrol-map-dragging')
+    const drop = (event: DragEvent) => {
+      event.preventDefault()
+      container.classList.remove('radar-patrol-map-dragging')
+      const id = event.dataTransfer?.getData('text/plain')
+      if (!id) return
+      const ponto = map.mouseEventToLatLng(event)
+      onDrop(id, ponto.lat, ponto.lng)
+    }
+    container.addEventListener('dragover', dragOver)
+    container.addEventListener('dragleave', dragLeave)
+    container.addEventListener('drop', drop)
+    return () => {
+      container.removeEventListener('dragover', dragOver)
+      container.removeEventListener('dragleave', dragLeave)
+      container.removeEventListener('drop', drop)
+    }
+  }, [map, onDrop])
+  return null
+}
+
+function RadarPatrulhamentoModal({
+  data,
+  checklists,
+  posicoesReais,
+  onFechar,
+  onSalvar,
+}: {
+  data: string
+  checklists: Atividade[]
+  posicoesReais: PosicaoRadar[]
+  onFechar: () => void
+  onSalvar: (draft: RadarPatrulhamentoDraft) => void
+}) {
+  const [nome, setNome] = useState('Patrulhamento preventivo')
+  const [descricao, setDescricao] = useState('')
+  const [horario, setHorario] = useState('08:00')
+  const [horarioFim, setHorarioFim] = useState('18:00')
+  const [local, setLocal] = useState('Congonhas — MG')
+  const [observacoes, setObservacoes] = useState('')
+  const [itens, setItens] = useState<RadarItemMapa[]>([])
+  const [itemSelecionado, setItemSelecionado] = useState<string | null>(null)
+  const [novaPlaca, setNovaPlaca] = useState('')
+  const [placasExtras, setPlacasExtras] = useState<string[]>([])
+  const [erro, setErro] = useState('')
+
+  const placas = useMemo(() => {
+    const valores = checklists.map(item => String(item.placa || '').trim().toUpperCase()).filter(Boolean)
+    return [...new Set([...valores, ...placasExtras])]
+  }, [checklists, placasExtras])
+  const agentesPosicionados = useMemo(
+    () => [...new Set(itens.filter(item => item.tipo === 'agente_dc').map(item => item.obs || '').filter(Boolean))],
+    [itens],
+  )
+  const veiculosPosicionados = useMemo(
+    () => itens.filter(item => item.tipo === 'viatura').map(item => item.obs || '').filter(Boolean),
+    [itens],
+  )
+
+  const adicionarItemNoMapa = useCallback((id: string, lat: number, lng: number) => {
+    const [tipo, ...partes] = id.split(':')
+    const nome = partes.join(':')
+    if (!nome || !['agente', 'viatura'].includes(tipo)) return
+    const item: RadarItemMapa = {
+      id: `${tipo}-${nome}-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+      tipo: tipo === 'agente' ? 'agente_dc' : 'viatura',
+      emoji: tipo === 'agente' ? '🧑‍🚒' : '🚓',
+      lat,
+      lng,
+      obs: nome,
+    }
+    setItens(prev => [...prev.filter(existing => !(existing.tipo === item.tipo && existing.obs === item.obs)), item])
+    setItemSelecionado(null)
+  }, [])
+
+  const selecionarNoMapa = useCallback((lat: number, lng: number) => {
+    if (itemSelecionado) adicionarItemNoMapa(itemSelecionado, lat, lng)
+  }, [adicionarItemNoMapa, itemSelecionado])
+
+  function arrastar(event: React.DragEvent, id: string) {
+    event.dataTransfer.setData('text/plain', id)
+    event.dataTransfer.effectAllowed = 'copy'
+  }
+
+  function adicionarPlaca() {
+    const placa = novaPlaca.trim().toUpperCase()
+    if (!placa) return
+    setPlacasExtras(prev => prev.includes(placa) ? prev : [...prev, placa])
+    setNovaPlaca('')
+    setItemSelecionado(`viatura:${placa}`)
+  }
+
+  function salvar(event: React.FormEvent) {
+    event.preventDefault()
+    if (!nome.trim() || !horario || !horarioFim) {
+      setErro('Informe o nome e os horários de início e fim.')
+      return
+    }
+    if (horario >= horarioFim) {
+      setErro('O horário final precisa ser depois do horário inicial.')
+      return
+    }
+    if (agentesPosicionados.length === 0) {
+      setErro('Arraste pelo menos um agente para o mapa.')
+      return
+    }
+    setErro('')
+    onSalvar({
+      dataInicio: data,
+      nome: nome.trim(),
+      descricao: descricao.trim(),
+      horario,
+      horarioFim,
+      local: local.trim() || 'Congonhas — MG',
+      lat: CONGONHAS.latitude,
+      lng: CONGONHAS.longitude,
+      agentes: agentesPosicionados,
+      itensMapa: itens,
+      observacoes: observacoes.trim(),
+    })
+  }
+
+  return (
+    <div className="radar-patrol-modal-backdrop" role="presentation">
+      <form className="radar-patrol-modal" onSubmit={salvar} role="dialog" aria-modal="true" aria-labelledby="radar-patrol-title">
+        <header className="radar-patrol-modal-header">
+          <div>
+            <span className="radar-patrol-eyebrow">NOVO PLANEJAMENTO · {dataBonita(data)}</span>
+            <h2 id="radar-patrol-title">Patrulhamento em Congonhas</h2>
+            <p>Arraste agentes e viaturas para os postos do mapa.</p>
+          </div>
+          <button type="button" className="radar-patrol-close" onClick={onFechar} aria-label="Fechar planejamento">×</button>
+        </header>
+
+        <div className="radar-patrol-form">
+          <label><span>Nome do patrulhamento</span><input value={nome} onChange={event => setNome(event.target.value)} placeholder="Ex.: Patrulhamento preventivo" /></label>
+          <label><span>Local / setor</span><input value={local} onChange={event => setLocal(event.target.value)} /></label>
+          <label className="radar-patrol-field-wide"><span>Objetivo e informações</span><textarea value={descricao} onChange={event => setDescricao(event.target.value)} rows={2} placeholder="Informe o objetivo, setores e orientações da equipe." /></label>
+          <label><span>Início</span><input type="time" value={horario} onChange={event => setHorario(event.target.value)} /></label>
+          <label><span>Fim</span><input type="time" value={horarioFim} onChange={event => setHorarioFim(event.target.value)} /></label>
+          <label className="radar-patrol-field-wide"><span>Observações do horário</span><input value={observacoes} onChange={event => setObservacoes(event.target.value)} placeholder="Troca de equipe, rádio, ponto de encontro..." /></label>
+        </div>
+
+        <div className="radar-patrol-workspace">
+          <aside className="radar-patrol-palette" aria-label="Recursos para posicionar">
+            <div className="radar-palette-heading">
+              <strong>Recursos</strong>
+              <small>{itens.length} no mapa</small>
+            </div>
+            <p className="radar-palette-help">Arraste um item ou selecione e toque no mapa.</p>
+            <div className="radar-palette-section">
+              <span>Agentes</span>
+              {AGENTES.map(agente => {
+                const id = `agente:${agente}`
+                const posicionado = agentesPosicionados.includes(agente)
+                return (
+                  <button
+                    type="button"
+                    key={agente}
+                    draggable
+                    onDragStart={event => arrastar(event, id)}
+                    onClick={() => setItemSelecionado(itemSelecionado === id ? null : id)}
+                    className={`radar-palette-item radar-palette-agent ${itemSelecionado === id ? 'selected' : ''} ${posicionado ? 'placed' : ''}`}
+                  >
+                    <span>🧑‍🚒</span><b>{agente}</b><small>{posicionado ? 'posicionado' : 'arrastar'}</small>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="radar-palette-section">
+              <span>Viaturas e placas</span>
+              {placas.map(placa => {
+                const id = `viatura:${placa}`
+                const posicionado = veiculosPosicionados.includes(placa)
+                return (
+                  <button type="button" key={placa} draggable onDragStart={event => arrastar(event, id)} onClick={() => setItemSelecionado(itemSelecionado === id ? null : id)} className={`radar-palette-item radar-palette-vehicle ${itemSelecionado === id ? 'selected' : ''} ${posicionado ? 'placed' : ''}`}>
+                    <span>🚓</span><b>{placa}</b><small>{posicionado ? 'posicionada' : 'arrastar'}</small>
+                  </button>
+                )
+              })}
+              {placas.length === 0 && <small className="radar-palette-empty">Nenhuma placa de checklist nesta data.</small>}
+              <div className="radar-palette-add">
+                <input value={novaPlaca} onChange={event => setNovaPlaca(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); adicionarPlaca() } }} placeholder="Digite a placa" aria-label="Nova placa de viatura" />
+                <button type="button" onClick={adicionarPlaca} disabled={!novaPlaca.trim()}>Adicionar</button>
+              </div>
+            </div>
+            {itemSelecionado && <div className="radar-palette-selected">📍 Toque no mapa para colocar <b>{itemSelecionado.split(':').slice(1).join(':')}</b></div>}
+          </aside>
+
+          <div className="radar-patrol-map-wrap">
+            <div className="radar-patrol-map-caption"><span>MAPA OPERACIONAL</span><b>Congonhas — MG</b><small>Postos planejados ficam semitransparentes.</small></div>
+            <MapContainer className="radar-patrol-map" center={[CONGONHAS.latitude, CONGONHAS.longitude]} zoom={13} minZoom={9} maxZoom={18} scrollWheelZoom>
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" subdomains={['a', 'b', 'c']} attribution='&copy; OpenStreetMap' />
+              <RadarMapDropEvents onMapClick={selecionarNoMapa} onDrop={adicionarItemNoMapa} />
+              <CircleMarker center={[CONGONHAS.latitude, CONGONHAS.longitude]} radius={9} pathOptions={{ color: '#1d4ed8', weight: 2, fillColor: '#60a5fa', fillOpacity: .4 }}>
+                <Tooltip permanent direction="top" offset={[0, -9]} className="radar-live-map-tooltip">📍 Congonhas</Tooltip>
+              </CircleMarker>
+              {posicoesReais.map(posicao => (
+                <CircleMarker key={`real-${posicao.id}`} center={[posicao.lat, posicao.lng]} radius={8} pathOptions={{ color: '#166534', weight: 2, fillColor: '#4ade80', fillOpacity: .55 }}>
+                  <Tooltip direction="top" offset={[0, -8]}>{`📡 ${posicao.nome}`}</Tooltip>
+                </CircleMarker>
+              ))}
+              {itens.map(item => (
+                <CircleMarker key={item.id} center={[item.lat, item.lng]} radius={item.tipo === 'viatura' ? 10 : 8} pathOptions={{ color: '#fff', weight: 2, fillColor: item.tipo === 'viatura' ? '#38bdf8' : '#4ade80', fillOpacity: .48 }}>
+                  <Tooltip permanent direction="top" offset={[0, -8]} className="radar-live-map-tooltip">{item.emoji} {item.obs}</Tooltip>
+                  <Popup>
+                    <strong>{item.emoji} {item.obs}</strong><br />
+                    <small>Posição planejada · {horario}–{horarioFim}</small><br />
+                    <button type="button" className="radar-patrol-remove-item" onClick={() => setItens(prev => prev.filter(existing => existing.id !== item.id))}>Remover</button>
+                  </Popup>
+                </CircleMarker>
+              ))}
+            </MapContainer>
+            <div className="radar-patrol-legend">
+              <strong>LEGENDA</strong>
+              <span><i className="radar-legend-symbol radar-legend-agent">🧑‍🚒</i> Agente planejado</span>
+              <span><i className="radar-legend-symbol radar-legend-vehicle">🚓</i> Viatura / placa</span>
+              <span><i className="radar-legend-symbol radar-legend-place">📍</i> Local e horário</span>
+              <span><i className="radar-legend-symbol radar-legend-real">📡</i> Agente em posição real</span>
+            </div>
+          </div>
+        </div>
+        {erro && <p className="radar-patrol-error" role="alert">{erro}</p>}
+        <footer className="radar-patrol-modal-footer">
+          <span>{agentesPosicionados.length} agente(s) · {veiculosPosicionados.length} viatura(s) · {horario}–{horarioFim}</span>
+          <div><button type="button" className="radar-patrol-cancel" onClick={onFechar}>Cancelar</button><button type="submit" className="radar-patrol-save">Salvar planejamento</button></div>
+        </footer>
+      </form>
+    </div>
+  )
+}
+
 function RadarMapaTempoReal({
   patrulhamentos,
   dataSelecionada,
@@ -225,6 +566,7 @@ function RadarMapaTempoReal({
   tv: boolean
 }) {
   const [camadaBase, setCamadaBase] = useState<'mapa' | 'satelite'>('mapa')
+  const posicoesReais = usePosicoesRadar()
   const planosDoDia = patrulhamentos.filter(plano => plano.dataInicio === dataSelecionada)
   const itensDoDia = planosDoDia.flatMap(plano => plano.itensMapa.map(item => ({ ...item, planoNome: plano.nome, planoId: plano.id })))
 
@@ -245,9 +587,10 @@ function RadarMapaTempoReal({
         <span className="radar-map-hint">Selecione um patrulhamento no calendário para ver agentes e viaturas no local</span>
       </div>
       <div className="radar-live-map-status">
-        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-plan" /> Local do patrulhamento</span>
-        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-agent" /> Agente escalado</span>
-        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-vehicle" /> Viatura</span>
+        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-plan" /> Local do patrulhamento · horário</span>
+        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-agent" /> Agente planejado</span>
+        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-vehicle" /> Viatura / placa</span>
+        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-real" /> Posição real do agente</span>
         {planosDoDia.length === 0 && <strong>Nenhum patrulhamento cadastrado nesta data.</strong>}
       </div>
       <MapContainer
@@ -281,12 +624,18 @@ function RadarMapaTempoReal({
           <Tooltip permanent direction="top" offset={[0, -8]} className="radar-live-map-tooltip">Congonhas · centro operacional</Tooltip>
           <Popup><strong>Congonhas - MG</strong><br />Mapa operacional da Guarda Municipal.</Popup>
         </CircleMarker>
+        {posicoesReais.map(posicao => (
+          <CircleMarker key={`radar-real-${posicao.id}`} center={[posicao.lat, posicao.lng]} radius={8} pathOptions={{ color: '#166534', weight: 2, fillColor: '#4ade80', fillOpacity: .55 }}>
+            <Tooltip direction="top" offset={[0, -8]} className="radar-live-map-tooltip">📡 {posicao.nome}</Tooltip>
+            <Popup><strong>📡 {posicao.nome}</strong><br />Posição real recebida pelo GPS.</Popup>
+          </CircleMarker>
+        ))}
         {planosDoDia.filter(plano => plano.lat != null && plano.lng != null).map(plano => (
           <CircleMarker
             key={`patrulhamento-${plano.id}`}
             center={[plano.lat!, plano.lng!]}
             radius={12}
-            pathOptions={{ color: '#f8fafc', weight: 3, fillColor: '#f59e0b', fillOpacity: .95 }}
+            pathOptions={{ color: '#f8fafc', weight: 3, fillColor: '#f59e0b', fillOpacity: .48 }}
           >
             <Tooltip permanent direction="top" offset={[0, -12]} className="radar-live-map-tooltip">
               {plano.horario || '—'} · {plano.nome}
@@ -307,7 +656,7 @@ function RadarMapaTempoReal({
               key={`patrulhamento-item-${item.planoId}-${item.id}`}
               center={[item.lat, item.lng]}
               radius={viatura ? 9 : 7}
-              pathOptions={{ color: '#fff', weight: 2, fillColor: viatura ? '#0ea5e9' : agente ? '#16a34a' : '#64748b', fillOpacity: .95 }}
+               pathOptions={{ color: '#fff', weight: 2, fillColor: viatura ? '#0ea5e9' : agente ? '#16a34a' : '#64748b', fillOpacity: .48 }}
             >
               <Tooltip permanent direction="top" offset={[0, -7]} className="radar-live-map-tooltip">
                 {item.emoji} {item.obs || (viatura ? 'Viatura' : agente ? 'Agente' : item.tipo)}
@@ -455,10 +804,12 @@ export default function RadarGM({
   patrulhamentos = [],
   onNovoPatrulhamento,
   onAbrirPatrulhamento,
+  onCriarPatrulhamento,
 }: {
   patrulhamentos?: RadarPatrulhamento[]
   onNovoPatrulhamento?: (data: string) => void
   onAbrirPatrulhamento?: (id: string) => void
+  onCriarPatrulhamento?: (draft: RadarPatrulhamentoDraft) => void
 }) {
   const agente = getAgenteLogado() || 'Agente GM'
   const [registros, setRegistros] = useState<RegistroRadar[]>([])
@@ -473,6 +824,7 @@ export default function RadarGM({
   const [agentesLembrete, setAgentesLembrete] = useState<string[]>([])
   const [editorAberto, setEditorAberto] = useState(false)
   const [tv, setTv] = useState(false)
+  const [patrulhamentoModalAberto, setPatrulhamentoModalAberto] = useState(false)
   const [atividades, setAtividades] = useState<{
     checklists: Atividade[]
     checklistsFerramentas: AtividadeFerramenta[]
@@ -499,6 +851,7 @@ export default function RadarGM({
   const ocorrenciasNotificadasRef = useRef(new Set<number>())
   const atividadesAssinaturaRef = useRef('')
   const calendarioRef = useRef<HTMLDivElement>(null)
+  const posicoesReais = usePosicoesRadar()
 
   useEffect(() => {
     const timer = window.setInterval(() => setHoraAtual(new Date()), 1000)
@@ -1170,7 +1523,10 @@ export default function RadarGM({
               <button
                 type="button"
                 className="radar-new-patrol"
-                onClick={() => onNovoPatrulhamento?.(dataSelecionada)}
+                onClick={() => {
+                  if (tv && onCriarPatrulhamento) setPatrulhamentoModalAberto(true)
+                  else onNovoPatrulhamento?.(dataSelecionada)
+                }}
               >
                 + Criar planejamento de Patrulhamento nesta data
               </button>
@@ -1438,6 +1794,18 @@ export default function RadarGM({
         </div>
       </div>
        </div>
+       {patrulhamentoModalAberto && onCriarPatrulhamento && (
+         <RadarPatrulhamentoModal
+           data={dataSelecionada}
+           checklists={atividades.checklists}
+           posicoesReais={posicoesReais}
+           onFechar={() => setPatrulhamentoModalAberto(false)}
+           onSalvar={draft => {
+             onCriarPatrulhamento(draft)
+             setPatrulhamentoModalAberto(false)
+           }}
+         />
+       )}
       <div className="radar-ticker">
         <span>RADAR GM</span>
         <div className="radar-ticker-viewport">

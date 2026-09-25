@@ -374,6 +374,41 @@ body.radar-tv-active .radar-page {
   overflow-y: auto;
 }
 
+@media (max-width: 760px) {
+  .radar-patrol-modal-backdrop { align-items: stretch; padding: 0; }
+  .radar-patrol-modal { max-height: 100dvh; border-radius: 0; }
+  .radar-patrol-modal-header { padding: .8rem .85rem; }
+  .radar-patrol-form {
+    grid-template-columns: 1fr 1fr;
+    max-height: 205px;
+    overflow-y: auto;
+    padding: .65rem .75rem;
+  }
+  .radar-patrol-form label:first-child,
+  .radar-patrol-form label:nth-child(2) { grid-column: span 2; }
+  .radar-patrol-field-wide { grid-column: span 2; }
+  .radar-patrol-workspace {
+    grid-template-columns: 145px minmax(0, 1fr);
+    min-height: 0;
+  }
+  .radar-patrol-palette { padding: .55rem; }
+  .radar-palette-item {
+    grid-template-columns: 22px minmax(0, 1fr);
+    padding: .32rem;
+  }
+  .radar-palette-item small { display: none; }
+  .radar-palette-add { display: grid; }
+  .radar-palette-add button { padding: .35rem; }
+  .radar-patrol-map-wrap { min-height: 0; padding: .35rem; }
+  .radar-patrol-map { min-height: 360px; }
+  .radar-patrol-map-caption { top: .7rem; left: .7rem; padding: .4rem .5rem; }
+  .radar-patrol-map-caption small { display: none; }
+  .radar-patrol-legend { right: .65rem; bottom: .65rem; min-width: 145px; padding: .4rem .5rem; font-size: .52rem; }
+  .radar-patrol-modal-footer { align-items: stretch; flex-direction: column; padding: .55rem .75rem; }
+  .radar-patrol-modal-footer > div { justify-content: stretch; }
+  .radar-patrol-modal-footer button { flex: 1; }
+}
+
 .radar-shield {
   display: inline-block;
   filter: drop-shadow(0 3px 2px rgba(3, 27, 56, .34));
