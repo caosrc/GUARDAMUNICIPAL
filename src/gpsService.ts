@@ -46,6 +46,8 @@ const listeners = new Set<Listener>()
 // clientes considerem o agente expirado (TTL = 10s no wsClient/MapaOcorrencias).
 let heartbeatId: ReturnType<typeof setInterval> | null = null
 const HEARTBEAT_MS = 5_000
+let retryId: ReturnType<typeof setTimeout> | null = null
+const GPS_RETRY_MS = 15_000
 
 // Identidade do dispositivo — espelha a lógica que existia em MapaOcorrencias
 function getDispositivoId(): string {
@@ -90,26 +92,42 @@ function enviarPosicao(p: PosicaoGps) {
 }
 
 function aceitarPosicao(pos: GeolocationPosition, origem: 'rapida' | 'watch') {
+  const timestamp = pos.timestamp || Date.now()
   const nova: PosicaoGps = {
     lat: pos.coords.latitude,
     lng: pos.coords.longitude,
     precisao: pos.coords.accuracy,
     velocidade: pos.coords.speed,
-    timestamp: pos.timestamp || Date.now(),
+    timestamp,
   }
 
-  // Se já temos uma posição mais recente do watch, ignora a "rápida cacheada"
-  if (origem === 'rapida' && estado.posicao && estado.posicao.timestamp >= nova.timestamp) {
-    return
-  }
-  // Se a posição cacheada é muito antiga (>2min), não usa — evita mostrar
-  // localização errada se o agente se moveu desde a última vez
-  if (origem === 'rapida' && Date.now() - nova.timestamp > 2 * 60 * 1000) {
-    return
-  }
+  const idadeMs = Date.now() - timestamp
+  const coordenadasValidas = Number.isFinite(nova.lat) && nova.lat >= -90 && nova.lat <= 90
+    && Number.isFinite(nova.lng) && nova.lng >= -180 && nova.lng <= 180
+  if (!coordenadasValidas || !Number.isFinite(nova.precisao) || nova.precisao <= 0) return
+  if (idadeMs > 30_000 || idadeMs < -60_000) return
 
+  // A posição inicial serve apenas para mostrar o agente enquanto o watch
+  // aquece. Não usa cache velho ou com precisão insuficiente como posição atual.
+  if (origem === 'rapida' && (idadeMs > 10_000 || nova.precisao > 75)) return
+  if (estado.posicao && timestamp <= estado.posicao.timestamp) return
+
+  if (retryId !== null) {
+    clearTimeout(retryId)
+    retryId = null
+  }
   setEstado({ status: 'ativo', posicao: nova, erro: null })
   enviarPosicao(nova)
+}
+
+function agendarRetentativaGps() {
+  if (retryId !== null) clearTimeout(retryId)
+  retryId = setTimeout(() => {
+    retryId = null
+    if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+      retomarGps()
+    }
+  }, GPS_RETRY_MS)
 }
 
 function iniciarHeartbeat() {
@@ -139,30 +157,33 @@ export function ativarGps() {
     return
   }
 
-  setEstado({ status: 'aguardando', erro: null, posicao: null })
+  // Ao tentar novamente, mantém a última posição visível até chegar uma nova.
+  setEstado({ status: 'aguardando', erro: null })
 
   // IMPORTANTE: no iOS o watchPosition deve ser chamado de forma SÍNCRONA
   // dentro do gesto do usuário. Nada de await antes.
   watchId = navigator.geolocation.watchPosition(
     (pos) => aceitarPosicao(pos, 'watch'),
     (err) => {
-      // TIMEOUT (3) → o watch continua, é só "ainda não conseguiu" → não desliga
       if (err.code === err.TIMEOUT) {
-        setEstado({ erro: 'Procurando sinal de GPS… (céu aberto melhora a precisão)' })
+        setEstado({ status: 'erro', erro: 'Procurando sinal de GPS… (céu aberto melhora a precisão)' })
+        agendarRetentativaGps()
       } else {
         setEstado({ status: 'erro', erro: mensagemErroGps(err) })
+        // Permissão negada precisa de uma ação do usuário nas configurações;
+        // falhas temporárias de sinal tentam novamente sozinhas.
+        if (err.code !== err.PERMISSION_DENIED) agendarRetentativaGps()
       }
     },
-    { enableHighAccuracy: true, timeout: 60000, maximumAge: 0 }
+    { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
   )
 
-  // Em paralelo: tenta uma posição rápida cacheada (até 30s velha) para
-  // que outros agentes te vejam em segundos enquanto o GPS preciso trava.
-  // Se o watch entregar antes, essa é descartada (timestamp mais velho).
+  // Em paralelo, usa apenas uma leitura recente e razoavelmente precisa como
+  // posição provisória; o watch de alta precisão continua sendo a fonte contínua.
   navigator.geolocation.getCurrentPosition(
     (pos) => aceitarPosicao(pos, 'rapida'),
     () => { /* silencioso — o watch é a fonte oficial */ },
-    { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 }
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 }
   )
 
   // Heartbeat: reenvia a posição a cada 5s pra atualizar last_seen na
@@ -170,8 +191,29 @@ export function ativarGps() {
   iniciarHeartbeat()
 }
 
+/** Reabre o rastreamento depois que o navegador suspende a página em segundo plano. */
+export function retomarGps() {
+  if (retryId !== null) {
+    clearTimeout(retryId)
+    retryId = null
+  }
+  const posicaoRecente = estado.posicao != null
+    && Date.now() - estado.posicao.timestamp <= 15_000
+  if (watchId !== null && estado.status === 'ativo' && posicaoRecente) return
+
+  if (watchId !== null) {
+    navigator.geolocation?.clearWatch(watchId)
+    watchId = null
+  }
+  ativarGps()
+}
+
 export function desativarGps() {
   pararHeartbeat()
+  if (retryId !== null) {
+    clearTimeout(retryId)
+    retryId = null
+  }
   if (watchId !== null) {
     navigator.geolocation.clearWatch(watchId)
     watchId = null

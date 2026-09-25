@@ -24,8 +24,7 @@ import {
 import { wsOn, wsSend, wsOnOpen } from '../wsClient'
 import type { SosAlerta } from '../sos'
 import {
-  ativarGps as ativarGpsGlobal,
-  desativarGps as desativarGpsGlobal,
+  retomarGps as retomarGpsGlobal,
   subscribeGps,
   getEstadoGps,
 } from '../gpsService'
@@ -695,6 +694,7 @@ export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExte
   const [erroGps, setErroGps] = useState<string | null>(null)
   const [posicaoAtual, setPosicaoAtual] = useState<[number, number] | null>(null)
   const [precisao, setPrecisao] = useState<number>(0)
+  const [ultimaAtualizacaoGps, setUltimaAtualizacaoGps] = useState<number | null>(null)
   const [velocidade, setVelocidade] = useState<number | null>(null)
   const [trilha, setTrilha] = useState<[number, number][]>([])
   const [seguir, setSeguir] = useState(true)
@@ -1047,6 +1047,7 @@ export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExte
         const coords: [number, number] = [est.posicao.lat, est.posicao.lng]
         setPosicaoAtual(coords)
         setPrecisao(est.posicao.precisao)
+        setUltimaAtualizacaoGps(est.posicao.timestamp)
         setVelocidade(est.posicao.velocidade)
         // Trilha: só adiciona ponto se moveu mais de 3 metros
         setTrilha((prev) => {
@@ -1068,6 +1069,7 @@ export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExte
         setPosicaoAtual(null)
         setTrilha([])
         setVelocidade(null)
+        setUltimaAtualizacaoGps(null)
         setSeguir(true)
         ultimaPosicaoRef.current = null
       }
@@ -1075,10 +1077,10 @@ export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExte
     return off
   }, [])
 
-  function toggleGps() {
+  function centralizarOuTentarGps() {
     const est = getEstadoGps()
-    if (est.status === 'ativo' || est.status === 'aguardando') desativarGpsGlobal()
-    else ativarGpsGlobal()
+    setSeguir(true)
+    if (est.status !== 'ativo' || !est.posicao) retomarGpsGlobal()
   }
 
   // ── Mapa offline ──────────────────────────────────────────────
@@ -2081,8 +2083,9 @@ export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExte
       {/* Botão GPS */}
       <button
         className={`mapa-gps-btn mapa-gps-btn--${statusGps}`}
-        onClick={toggleGps}
-        title={statusGps === 'ativo' ? 'Desativar rastreamento GPS' : 'Ativar rastreamento GPS'}
+        onClick={centralizarOuTentarGps}
+        title={statusGps === 'ativo' ? 'Centralizar na posição do agente' : 'Tentar GPS novamente'}
+        aria-label={statusGps === 'ativo' ? 'Centralizar na posição atual do agente' : 'Ativar ou tentar novamente o GPS'}
       >
         {statusGps === 'aguardando' ? (
           <span className="mapa-gps-spinner" />
@@ -2092,10 +2095,10 @@ export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExte
           </span>
         )}
         <span className="mapa-gps-label">
-          {statusGps === 'inativo' && 'GPS'}
+          {statusGps === 'inativo' && 'Ativar GPS'}
           {statusGps === 'aguardando' && 'Aguardando…'}
-          {statusGps === 'ativo' && 'GPS ativo'}
-          {statusGps === 'erro' && 'Erro GPS'}
+          {statusGps === 'ativo' && 'Minha posição'}
+          {statusGps === 'erro' && 'Tentar GPS'}
         </span>
       </button>
 
@@ -2129,7 +2132,13 @@ export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExte
               <div className="mapa-equipe-info">
                 <span className="mapa-equipe-nome">{nomeLocal} <em>(você)</em></span>
                 <span className="mapa-equipe-status">
-                  {statusGps === 'ativo' ? '🟢 Online no mapa para todos' : statusGps === 'aguardando' ? '🟡 Aguardando GPS…' : '⚫ GPS desligado — invisível para os colegas'}
+                  {statusGps === 'ativo'
+                    ? '🟢 GPS atualizado; visível para todos'
+                    : statusGps === 'aguardando'
+                      ? '🟡 Atualizando sua posição…'
+                      : statusGps === 'erro'
+                        ? '🔴 GPS indisponível; mantendo a última posição'
+                        : '⚪ GPS aguardando ativação'}
                 </span>
               </div>
             </div>
@@ -2281,23 +2290,39 @@ export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExte
       )}
 
       {/* Painel GPS ativo */}
-      {statusGps === 'ativo' && posicaoAtual && (
-        <div className="mapa-gps-info">
+      {posicaoAtual && statusGps !== 'inativo' && (
+        <div className={`mapa-gps-info mapa-gps-info--${statusGps}`}>
           <div className="mapa-gps-info-row">
-            <span className="mapa-gps-info-dot" />
+            <span className={`mapa-gps-info-dot mapa-gps-info-dot--${statusGps}`} />
             <span className="mapa-gps-info-text">
-              {velocidadeKmh !== null ? `${velocidadeKmh} km/h` : 'Parado'}
+              {statusGps === 'ativo'
+                ? precisao > 75
+                  ? 'Ao vivo · precisão baixa'
+                  : velocidadeKmh !== null ? `${velocidadeKmh} km/h` : 'GPS ao vivo'
+                : statusGps === 'aguardando' ? 'Atualizando posição…' : 'Última posição mantida'}
             </span>
             <span className="mapa-gps-info-sep">·</span>
             <span className="mapa-gps-info-text">±{Math.round(precisao)} m</span>
-            <span className="mapa-gps-info-sep">·</span>
-            <span className="mapa-gps-info-text">{trilha.length} pts</span>
-            {statusWs === 'conectado' && (
+            {ultimaAtualizacaoGps != null && statusGps !== 'ativo' && (
               <>
                 <span className="mapa-gps-info-sep">·</span>
-                <span className="mapa-gps-info-text" style={{ color: '#15803d' }}>
-                  📡 {dispositivosArray.length + 1} equipe{dispositivosArray.length !== 0 ? 's' : ''}
+                <span className="mapa-gps-info-text">
+                  {Math.max(0, Math.floor((Date.now() - ultimaAtualizacaoGps) / 1000))}s atrás
                 </span>
+              </>
+            )}
+            {statusGps === 'ativo' && (
+              <>
+                <span className="mapa-gps-info-sep">·</span>
+                <span className="mapa-gps-info-text">{trilha.length} pts</span>
+                {statusWs === 'conectado' && (
+                  <>
+                    <span className="mapa-gps-info-sep">·</span>
+                    <span className="mapa-gps-info-text" style={{ color: '#15803d' }}>
+                      📡 {dispositivosArray.length + 1} equipe{dispositivosArray.length !== 0 ? 's' : ''}
+                    </span>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -2314,11 +2339,11 @@ export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExte
       {statusGps === 'erro' && erroGps && (
         <div className="mapa-gps-erro">
           <div>
-            <strong>⚠️ GPS não permitido</strong>
+            <strong>⚠️ Localização indisponível</strong>
             <span>{erroGps}</span>
             <small>Depois de liberar no navegador/celular, toque no botão GPS novamente.</small>
           </div>
-          <button onClick={() => setStatusGps('inativo')}>✕</button>
+          <button onClick={() => setErroGps(null)} aria-label="Fechar aviso de localização">✕</button>
         </div>
       )}
 

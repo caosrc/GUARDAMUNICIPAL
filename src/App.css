@@ -1685,6 +1685,8 @@ input, select, textarea { font-family: inherit; }
   animation: gps-pulse 1.5s ease-in-out infinite;
   flex-shrink: 0;
 }
+.mapa-gps-info-dot--aguardando { background: #d97706; animation: none; }
+.mapa-gps-info-dot--erro { background: #dc2626; animation: none; }
 @keyframes gps-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.5; transform: scale(0.7); }
@@ -1712,7 +1714,7 @@ input, select, textarea { font-family: inherit; }
 /* Error toast */
 .mapa-gps-erro {
   position: absolute;
-  bottom: 62px;
+  bottom: 112px;
   right: 14px;
   z-index: 500;
   background: #fef2f2;

@@ -11,7 +11,7 @@ import { matApi } from './matApi'
 import { EVT_ROTA_RESGATE } from './sos'
 import { useSosListener } from './sos'
 import type { SosAlerta } from './sos'
-import { ativarGps } from './gpsService'
+import { ativarGps, retomarGps } from './gpsService'
 import { registrarPushSeNecessario, pedirPermissaoEInscrever, getStatusNotificacoes } from './pushNotifications'
 import AgentesOnline from './components/AgentesOnline'
 import BotaoSos from './components/BotaoSos'
@@ -472,6 +472,17 @@ export default function App() {
     const agente = getAgenteLogado()
     if (!agente) return
     ativarGps()
+    let retomarTimer: number | undefined
+    const aoRetomarApp = () => {
+      if (document.visibilityState !== 'visible') return
+      if (retomarTimer !== undefined) window.clearTimeout(retomarTimer)
+      retomarTimer = window.setTimeout(() => {
+        retomarTimer = undefined
+        retomarGps()
+      }, 500)
+    }
+    document.addEventListener('visibilitychange', aoRetomarApp)
+    window.addEventListener('pageshow', aoRetomarApp)
     // Re-anuncia presença com o nome correto do agente (o WS pode ter conectado
     // antes do login, quando o nome ainda estava vazio)
     wsAnunciarOnline()
@@ -483,7 +494,12 @@ export default function App() {
       const s = await getStatusNotificacoes()
       setStatusNotif(s)
     }, 2000)
-    return () => clearTimeout(t)
+    return () => {
+      clearTimeout(t)
+      if (retomarTimer !== undefined) window.clearTimeout(retomarTimer)
+      document.removeEventListener('visibilitychange', aoRetomarApp)
+      window.removeEventListener('pageshow', aoRetomarApp)
+    }
   }, [logado])
 
   // Verifica prazos vencidos de Empréstimos/Manutenção e Equipamentos em Campo

@@ -9,3 +9,4 @@
 - [Fotos WebP](fotos-webp.md) — novas fotos são armazenadas em WebP; exportações que exigem compatibilidade convertem temporariamente para JPEG.
 - [Gráficos nativos em Excel](excel-charts-ooXml.md) — ExcelJS exige tabelas auxiliares e OOXML/JSZip para gráficos editáveis, não imagens PNG.
 - [Cache de assets versionados](asset-cache.md) — abas antigas podem pedir chunks Vite removidos; assets ausentes não devem receber o fallback HTML da SPA.
+- [GPS em segundo plano](gps-mobile-background.md) — navegadores móveis podem suspender geolocalização; retomar ao voltar ao app e não prometer rastreamento garantido em segundo plano.
