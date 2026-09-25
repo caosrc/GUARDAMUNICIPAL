@@ -1328,63 +1328,103 @@ export default function RadarGM({
         </div>
 
         <div className="radar-right-column">
-        <section className="radar-activities">
-         <div className="radar-list-heading"><div><span className="card-label">REGISTROS OPERACIONAIS</span><h2>Atividades de {dataBonita(dataSelecionada)}</h2></div><strong>{atividades.checklists.length + atividades.checklistsFerramentas.length + atividades.ocorrencias.length} registro(s)</strong></div>
-        <div className="radar-activity-columns">
-          <div><h3>🚗 Checklists do dia</h3>{atividades.checklists.length === 0 ? <div className="radar-empty">Nenhum checklist de viatura registrado.</div> : atividades.checklists.map(c => <button className="radar-activity" key={c.id} onClick={() => disparar('dc:abrir-checklist', { id: c.id })}><b>{c.agente}{c.fotoCarregada && <strong className="radar-foto-carregada">Foto Carregada</strong>}</b><span className="radar-checklist-resumo">{c.hora} - {c.placa || 'Placa não informada'} - KM {c.km || 'não informado'} - ⛽ {c.nivelCombustivel || 'não informado'}</span><em>abrir ›</em></button>)}
-          <h3 className="radar-subtitulo-ferramentas">🧰 Checklists de ferramentas</h3>
-          {resumosFerramental.length === 0 ? (
-            <div className="radar-empty">Nenhum checklist de ferramenta registrado.</div>
-          ) : (
-            <div className="radar-ferramental-resumos">
-              {resumosFerramental.map(resumo => (
-                <article className="radar-ferramental-resumo" key={resumo.agente}>
-                  <div className="radar-ferramental-cabecalho">
-                    <strong>{resumo.agente}</strong>
-                    <b>Ferramental {resumo.tiposVerificados}/{resumo.totalTipos}</b>
-                  </div>
-                   {(resumo.boa + resumo.media + resumo.ruim) > 0 && (
-                     <div className="radar-ferramental-itens">
-                       <span className="radar-ferramental-boa">Boa - {percentual(resumo.boa, resumo.totalTipos)}%</span>
-                       <span className="radar-ferramental-media">Média - {percentual(resumo.media, resumo.totalTipos)}%</span>
-                       <span className="radar-ferramental-ruim">Ruim - {percentual(resumo.ruim, resumo.totalTipos)}%</span>
-                     </div>
-                   )}
-                  <div className="radar-ferramental-quantidade">
-                     Itens/litros conferidos: {resumo.itensConferidos}/{resumo.itensCadastrados}
-                  </div>
-                  {resumo.ferramentasRuins.length > 0 && (
-                    <div className="radar-ferramental-alerta radar-ferramental-alerta-ruim">
-                      <strong>Ruim:</strong> {resumo.ferramentasRuins.join(', ')}
-                    </div>
-                  )}
-                  {resumo.faltantes.length > 0 && (
-                    <div className="radar-ferramental-alerta radar-ferramental-alerta-falta">
-                      <strong>Faltando:</strong> {resumo.faltantes.join(', ')}
-                    </div>
-                  )}
-                  {resumo.serragemAlertas.length > 0 && (
-                    <div className="radar-ferramental-alerta radar-ferramental-alerta-serragem">
-                      <strong>⚠️ Serragem:</strong> {resumo.serragemAlertas.join(', ')}
-                    </div>
-                  )}
-                   {resumo.litrosAlertas.length > 0 && (
-                     <div className="radar-ferramental-alerta radar-ferramental-alerta-serragem">
-                       <strong>⚠️ Estoque baixo:</strong> {resumo.litrosAlertas.join(', ')}
-                     </div>
-                   )}
-                  {resumo.semChecklist.length > 0 && (
-                    <div className="radar-ferramental-alerta radar-ferramental-alerta-pendente">
-                      <strong>Sem checklist:</strong> {resumo.semChecklist.slice(0, 3).join(', ')}
-                      {resumo.semChecklist.length > 3 ? ` e mais ${resumo.semChecklist.length - 3}` : ''}
-                    </div>
-                  )}
-                </article>
-              ))}
-            </div>
-          </div>
-          <div><h3>⚠️ Ocorrências do dia</h3>{atividades.ocorrencias.length === 0 ? <div className="radar-empty">Nenhuma ocorrência registrada.</div> : atividades.ocorrencias.map(o => <button className="radar-activity" key={o.id} onClick={() => disparar('dc:abrir-ocorrencia', { id: o.id })}><b>{o.agente}</b><span>{o.hora} · {o.natureza || 'Natureza não informada'}</span><small>{o.endereco || 'Endereço não informado'}</small><em>abrir ›</em></button>)}</div>
-        </div>
+         <section className="radar-activities">
+           <div className="radar-list-heading">
+             <div>
+               <span className="card-label">REGISTROS OPERACIONAIS</span>
+               <h2>Atividades de {dataBonita(dataSelecionada)}</h2>
+             </div>
+             <strong>
+               {atividades.checklists.length + atividades.checklistsFerramentas.length + atividades.ocorrencias.length} registro(s)
+             </strong>
+           </div>
+           <div className="radar-activity-columns">
+             <div>
+               <h3>🚗 Checklists do dia</h3>
+               {atividades.checklists.length === 0 ? (
+                 <div className="radar-empty">Nenhum checklist de viatura registrado.</div>
+               ) : (
+                 atividades.checklists.map(c => (
+                   <button className="radar-activity" key={c.id} onClick={() => disparar('dc:abrir-checklist', { id: c.id })}>
+                     <b>
+                       {c.agente}
+                       {c.fotoCarregada && <strong className="radar-foto-carregada">Foto Carregada</strong>}
+                     </b>
+                     <span className="radar-checklist-resumo">
+                       {c.hora} - {c.placa || 'Placa não informada'} - KM {c.km || 'não informado'} - ⛽ {c.nivelCombustivel || 'não informado'}
+                     </span>
+                     <em>abrir ›</em>
+                   </button>
+                 ))
+               )}
+               <h3 className="radar-subtitulo-ferramentas">🧰 Checklists de ferramentas</h3>
+               {resumosFerramental.length === 0 ? (
+                 <div className="radar-empty">Nenhum checklist de ferramenta registrado.</div>
+               ) : (
+                 <div className="radar-ferramental-resumos">
+                   {resumosFerramental.map(resumo => (
+                     <article className="radar-ferramental-resumo" key={resumo.agente}>
+                       <div className="radar-ferramental-cabecalho">
+                         <strong>{resumo.agente}</strong>
+                         <b>Ferramental {resumo.tiposVerificados}/{resumo.totalTipos}</b>
+                       </div>
+                       {(resumo.boa + resumo.media + resumo.ruim) > 0 && (
+                         <div className="radar-ferramental-itens">
+                           <span className="radar-ferramental-boa">Boa - {percentual(resumo.boa, resumo.totalTipos)}%</span>
+                           <span className="radar-ferramental-media">Média - {percentual(resumo.media, resumo.totalTipos)}%</span>
+                           <span className="radar-ferramental-ruim">Ruim - {percentual(resumo.ruim, resumo.totalTipos)}%</span>
+                         </div>
+                       )}
+                       <div className="radar-ferramental-quantidade">
+                         Itens/litros conferidos: {resumo.itensConferidos}/{resumo.itensCadastrados}
+                       </div>
+                       {resumo.ferramentasRuins.length > 0 && (
+                         <div className="radar-ferramental-alerta radar-ferramental-alerta-ruim">
+                           <strong>Ruim:</strong> {resumo.ferramentasRuins.join(', ')}
+                         </div>
+                       )}
+                       {resumo.faltantes.length > 0 && (
+                         <div className="radar-ferramental-alerta radar-ferramental-alerta-falta">
+                           <strong>Faltando:</strong> {resumo.faltantes.join(', ')}
+                         </div>
+                       )}
+                       {resumo.serragemAlertas.length > 0 && (
+                         <div className="radar-ferramental-alerta radar-ferramental-alerta-serragem">
+                           <strong>⚠️ Serragem:</strong> {resumo.serragemAlertas.join(', ')}
+                         </div>
+                       )}
+                       {resumo.litrosAlertas.length > 0 && (
+                         <div className="radar-ferramental-alerta radar-ferramental-alerta-serragem">
+                           <strong>⚠️ Estoque baixo:</strong> {resumo.litrosAlertas.join(', ')}
+                         </div>
+                       )}
+                       {resumo.semChecklist.length > 0 && (
+                         <div className="radar-ferramental-alerta radar-ferramental-alerta-pendente">
+                           <strong>Sem checklist:</strong> {resumo.semChecklist.slice(0, 3).join(', ')}
+                           {resumo.semChecklist.length > 3 ? ` e mais ${resumo.semChecklist.length - 3}` : ''}
+                         </div>
+                       )}
+                     </article>
+                   ))}
+                 </div>
+               )}
+             </div>
+             <div>
+               <h3>⚠️ Ocorrências do dia</h3>
+               {atividades.ocorrencias.length === 0 ? (
+                 <div className="radar-empty">Nenhuma ocorrência registrada.</div>
+               ) : (
+                 atividades.ocorrencias.map(o => (
+                   <button className="radar-activity" key={o.id} onClick={() => disparar('dc:abrir-ocorrencia', { id: o.id })}>
+                     <b>{o.agente}</b>
+                     <span>{o.hora} · {o.natureza || 'Natureza não informada'}</span>
+                     <small>{o.endereco || 'Endereço não informado'}</small>
+                     <em>abrir ›</em>
+                   </button>
+                 ))
+               )}
+             </div>
+           </div>
          </section>
          <RadarMapaTempoReal patrulhamentos={patrulhamentos} dataSelecionada={dataSelecionada} tv={tv} />
        {lembreteParaApagar && (
