@@ -2297,7 +2297,7 @@ body.radar-tv-active .radar-tv .radar-ticker-empty {
 }
 
 /*
- * Layout final do Radar DC
+ * Layout final do Radar GM
  * Mantém a previsão e o calendário no mesmo bloco superior, como no painel
  * de referência, e garante que nenhum cartão crie uma largura mínima maior
  * que a viewport.
@@ -2629,7 +2629,7 @@ html:-webkit-full-screen {
 }
 
 /*
- * Faixa meteorológica compacta do Radar DC.
+ * Faixa meteorológica compacta do Radar GM.
  * Mantém a hierarquia da referência: clima e previsão ocupam a maior área,
  * enquanto o calendário fica visível como apoio operacional ao lado.
  */
@@ -4346,7 +4346,7 @@ html:-webkit-full-screen {
 }
 
 /*
- * Painel operacional compacto — visual de referência do Radar DC.
+ * Painel operacional compacto — visual de referência do Radar GM.
  * A previsão e o calendário ficam no mesmo nível, sem esconder informações.
  * Esta camada vem por último para neutralizar os ajustes legados acima.
  */
@@ -5397,7 +5397,7 @@ html:-webkit-full-screen {
 }
 
 /*
- * Modo TV — faixa superior conforme a referência compacta do Radar DC.
+ * Modo TV — faixa superior conforme a referência compacta do Radar GM.
  * A condição atual e a cena ficam separadas da previsão, enquanto o
  * calendário ocupa uma coluna estreita à direita.
  */

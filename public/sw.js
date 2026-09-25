@@ -1,4 +1,4 @@
-/* Defesa Civil — Service Worker
+/* Guarda Municipal — Service Worker
  * PWA + Offline First + Web Push
  *
  * Estratégias:
@@ -18,7 +18,7 @@
  *  - LIMPAR_CACHE_MAPA               → apaga todos os tiles cacheados
  */
 
-const VERSION = 'v18-2026-09-excel-export'
+const VERSION = 'v19-2026-09-guarda-municipal'
 const APP_CACHE = `defesacivil-app-${VERSION}`
 const TILES_CACHE = 'defesacivil-tiles-osm'
 const ASSETS_CACHE = `defesacivil-assets-${VERSION}`
@@ -30,7 +30,6 @@ const APP_SHELL = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/defesa-civil-logo.png',
   '/icon-192.png',
   '/icon-512.png',
   '/icons.svg',
@@ -226,7 +225,7 @@ self.addEventListener('push', (event) => {
   } catch {
     try { data = { body: event.data?.text() || '' } } catch { /* ignore */ }
   }
-  const titulo = data.title || '🆘 SOS — Defesa Civil'
+  const titulo = data.title || '🆘 SOS — Guarda Municipal'
   const corpo = data.body || 'Um agente acionou o SOS. Abra o app imediatamente.'
   const tag = data.tag || 'sos'
   const url = data.url || '/'

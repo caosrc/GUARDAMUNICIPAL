@@ -9,7 +9,7 @@ import { ativarGps, desativarGps, subscribeGps, getEstadoGps, getDispositivoIdGl
 import { supabase, supabaseDisponivel } from '../supabaseClient'
 import { saveFotoCampoPendente, getFotosCampoPendentes, removeFotoCampoPendente, clearFotosCampoPendentesPlano } from '../offline'
 import { salvarFotoNoDispositivo } from '../utils'
-import RadarDC from './RadarDC'
+import RadarGM from './RadarDC'
 
 const ORGAOS_EMPENHO: { categoria: string; emoji: string; orgaos: { emoji: string; nome: string }[] }[] = [
   { categoria: 'Segurança Pública', emoji: '🚔', orgaos: [
@@ -275,11 +275,75 @@ const STORAGE_KEY = 'defesacivil-planejamentos-v1'
 // carregarDoServidor usa isso para não sobrescrever dados salvos recentemente.
 const planosProtegidos = new Map<string, number>() // id → timestamp (ms)
 
-const TIPOS_CONFIG: Record<TipoPlano, { label: string; emoji: string; cor: string; descricao: string }> = {
-  evento:     { label: 'Eventos',    emoji: '🎪', cor: '#1a6bbf', descricao: 'Festas, shows, feiras e grandes concentrações' },
-  operacao:   { label: 'Operações',  emoji: '🚨', cor: '#dc2626', descricao: 'Resposta a enchentes, deslizamentos, incêndios' },
-  simulado:   { label: 'Simulados',  emoji: '⛑️', cor: '#7c3aed', descricao: 'Exercícios e treinamentos de emergência' },
-  emergencia: { label: 'Emergencial', emoji: '⚠️', cor: '#ea580c', descricao: 'Plano de emergência municipal' },
+const TIPOS_CONFIG: Record<TipoPlano, {
+  label: string
+  emoji: string
+  cor: string
+  descricao: string
+  exemploNome: string
+  descricaoPlaceholder: string
+  atividades: string[]
+}> = {
+  evento: {
+    label: 'Eventos',
+    emoji: '🎪',
+    cor: '#1a6bbf',
+    descricao: 'Prevenção, ordenamento, trânsito e proteção do patrimônio durante eventos.',
+    exemploNome: 'Apoio preventivo — evento na Praça Central',
+    descricaoPlaceholder: 'Informe público previsto, pontos de controle, circulação, rotas de emergência e órgãos de apoio.',
+    atividades: [
+      'Definir postos de patrulhamento e pontos de presença',
+      'Organizar acessos, filas e circulação segura',
+      'Mapear saídas de emergência e pontos de encontro',
+      'Planejar bloqueios, desvios e apoio ao trânsito',
+      'Proteger prédios e equipamentos municipais no entorno',
+    ],
+  },
+  operacao: {
+    label: 'Operações',
+    emoji: '🚨',
+    cor: '#dc2626',
+    descricao: 'Patrulhamento preventivo, proteção de próprios públicos e apoio a ações municipais.',
+    exemploNome: 'Operação de proteção escolar — bairro',
+    descricaoPlaceholder: 'Registre objetivo, setores, equipes e viaturas, comunicação e órgãos parceiros.',
+    atividades: [
+      'Planejar patrulhamento preventivo por setor',
+      'Proteger escolas e outros próprios municipais',
+      'Apoiar fiscalização e operações intersetoriais',
+      'Definir pontos de encontro, comunicação e responsáveis',
+      'Registrar critérios de encerramento e resultados',
+    ],
+  },
+  simulado: {
+    label: 'Simulados',
+    emoji: '🛡️',
+    cor: '#7c3aed',
+    descricao: 'Treinamento de equipes, comunicação por rádio e resposta coordenada.',
+    exemploNome: 'Simulado de evacuação — prédio público',
+    descricaoPlaceholder: 'Descreva o cenário, os objetivos, os participantes, a sequência do exercício e a avaliação.',
+    atividades: [
+      'Treinar acionamento de equipes e comunicação por rádio',
+      'Exercitar isolamento seguro de uma área',
+      'Simular evacuação e orientação do público',
+      'Treinar integração com Bombeiros, SAMU, PM e Defesa Civil',
+      'Registrar tempos de resposta e lições aprendidas',
+    ],
+  },
+  emergencia: {
+    label: 'Emergencial',
+    emoji: '⚠️',
+    cor: '#ea580c',
+    descricao: 'Mobilização da Guarda para proteger pessoas e áreas públicas e apoiar a resposta municipal.',
+    exemploNome: 'Resposta emergencial — proteção de área',
+    descricaoPlaceholder: 'Descreva a situação, a área, as medidas de segurança e a coordenação com os órgãos responsáveis.',
+    atividades: [
+      'Acionar a equipe e confirmar viaturas e comunicação',
+      'Organizar o perímetro e apoiar interdições de segurança',
+      'Orientar a circulação e proteger acessos a áreas públicas',
+      'Acionar o órgão competente e registrar as atualizações',
+      'Documentar ocorrências, decisões e passagem de serviço',
+    ],
+  },
 }
 
 const STATUS_CONFIG: Record<StatusPlano, { label: string; emoji: string; classe: string }> = {
@@ -1091,7 +1155,7 @@ function MapaDetalhe({
                       const ativo = itemSelecionado === key
                       return (
                         <button key={orgao} onClick={() => setItemSelecionado(ativo ? null : key)} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: ativo ? '#1e40af' : '#dbeafe', color: ativo ? 'white' : '#1e3a8a', border: ativo ? '1.5px solid #1e40af' : '1.5px solid #bfdbfe', borderRadius: 20, padding: '0.22rem 0.6rem', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', boxShadow: ativo ? '0 0 0 2px #93c5fd' : 'none' }}>
-                          {orgaoInfo?.nome === 'Defesa Civil' ? <img src="/icon-192.png" alt="" style={{ width: 16, height: 16, objectFit: 'contain', borderRadius: 3 }} /> : <span style={{ fontSize: '0.88rem' }}>{emoji}</span>}
+                          {orgaoInfo?.nome === 'Guarda Municipal' ? <img src="/icon-192.png" alt="" style={{ width: 16, height: 16, objectFit: 'contain', borderRadius: 3 }} /> : <span style={{ fontSize: '0.88rem' }}>{emoji}</span>}
                           {orgaoInfo?.nome ?? orgao}{ativo && <span style={{ fontSize: '0.6rem' }}>📍</span>}
                         </button>
                       )
@@ -1102,14 +1166,14 @@ function MapaDetalhe({
           )}
         </div>
 
-        {/* ── Seção: Agentes da Defesa Civil (recolhível) ── */}
+        {/* ── Seção: Agentes da Guarda Municipal (recolhível) ── */}
         <div style={{ borderBottom: '1px solid #e5e7eb' }}>
           <button
             onClick={() => setSecaoAberta(secaoAberta === 'agentes' ? null : 'agentes')}
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.75rem', background: secaoAberta === 'agentes' ? 'linear-gradient(90deg,#065f46,#059669)' : '#f0fdf4', border: 'none', cursor: 'pointer', textAlign: 'left' }}
           >
             <span style={{ fontSize: '0.88rem' }}>🧑‍🚒</span>
-            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: secaoAberta === 'agentes' ? 'white' : '#166534', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Agentes da Defesa Civil</span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: secaoAberta === 'agentes' ? 'white' : '#166534', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Agentes da Guarda Municipal</span>
             <span style={{ marginLeft: 'auto', background: secaoAberta === 'agentes' ? 'rgba(255,255,255,0.22)' : '#bbf7d0', color: secaoAberta === 'agentes' ? 'white' : '#166534', borderRadius: 10, fontSize: '0.62rem', fontWeight: 700, padding: '0.05rem 0.4rem' }}>
               {(plano.agentesDefesaCivil ?? []).length}
             </span>
@@ -1637,7 +1701,7 @@ function OrgaosPanel({ selecionados, onChange }: { selecionados: string[]; onCha
                       onClick={() => toggle(k)}
                       style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: sel ? '#1e40af' : '#f1f5ff', color: sel ? 'white' : '#1e3a8a', border: sel ? '1.5px solid #1e40af' : '1.5px solid #dbeafe', borderRadius: 7, padding: '0.3rem 0.45rem', fontSize: '0.73rem', fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}
                     >
-                      {o.nome === 'Defesa Civil' ? (
+                      {o.nome === 'Guarda Municipal' ? (
                         <img src="/icon-192.png" alt="" style={{ width: 16, height: 16, objectFit: 'contain', borderRadius: 3, flexShrink: 0 }} />
                       ) : (
                         <span style={{ fontSize: '0.9rem', lineHeight: 1, flexShrink: 0 }}>{o.emoji}</span>
@@ -1760,7 +1824,7 @@ function exportarPDF(plano: Plano, mapCenter?: [number, number], mapZoom?: numbe
           <div style="border-bottom:3px solid #1a4b8c;padding-bottom:10px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between">
             <div>
               <div style="font-size:16px;font-weight:800;color:#1a4b8c">📸 ${LABEL_FOTOS_TIPO[plano.tipo]} — Página ${numPag}</div>
-              <div style="font-size:11px;color:#6b7280">${plano.nome} — CODAP — Conselheiro Lafaiete</div>
+              <div style="font-size:11px;color:#6b7280">${plano.nome} — Guarda Municipal — Conselheiro Lafaiete</div>
             </div>
             <div style="font-size:10px;color:#9ca3af">Fotos ${i + 1}–${Math.min(i + 4, todasFotos.length)} de ${todasFotos.length}</div>
           </div>
@@ -1785,7 +1849,7 @@ function exportarPDF(plano: Plano, mapCenter?: [number, number], mapZoom?: numbe
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8">
-<title>${plano.nome} — CODAP — Conselheiro Lafaiete</title>
+<title>${plano.nome} — Guarda Municipal — Conselheiro Lafaiete</title>
 <script>window.addEventListener('afterprint', function(){ setTimeout(function(){ window.close(); }, 300); });<\/script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
@@ -1818,7 +1882,7 @@ function exportarPDF(plano: Plano, mapCenter?: [number, number], mapZoom?: numbe
 <div class="header">
   <div>
     <h1>${cfg.emoji} ${plano.nome}</h1>
-    <div class="sub">CODAP — Conselheiro Lafaiete — ${cfg.label} | Emitido em ${dataEmissao}</div>
+    <div class="sub">Guarda Municipal — Conselheiro Lafaiete — ${cfg.label} | Emitido em ${dataEmissao}</div>
   </div>
   <div class="logo">🛡️</div>
 </div>
@@ -1871,7 +1935,7 @@ ${plano.conclusao ? `<div class="section" style="border-left:4px solid #059669;b
 </div>` : ''}
 
 <div class="footer">
-  <span>CODAP — Conselheiro Lafaiete — Sistema de Gerenciamento de Ocorrências</span>
+  <span>Guarda Municipal — Conselheiro Lafaiete — Planejamento operacional</span>
   <span>Emitido em ${dataEmissao}</span>
 </div>
 
@@ -1884,7 +1948,7 @@ ${(plano.lat && plano.lng) || plano.itensMapa.length > 0 || (plano.pontosExtras 
   <div style="border-bottom:3px solid #1a4b8c;padding-bottom:10px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
     <div>
       <div style="font-size:16px;font-weight:800;color:#1a4b8c">🗺️ Mapa de Planejamento Operacional</div>
-      <div style="font-size:11px;color:#6b7280">${plano.nome} — CODAP — Conselheiro Lafaiete</div>
+      <div style="font-size:11px;color:#6b7280">${plano.nome} — Guarda Municipal — Conselheiro Lafaiete</div>
     </div>
     <div style="font-size:10px;color:#9ca3af">Emitido em ${dataEmissao}</div>
   </div>
@@ -2073,7 +2137,7 @@ function FormularioPlano({
             <label className="plan-form-label">Nome *</label>
             <input
               className="plan-form-input"
-              placeholder={`Ex: ${tipo === 'evento' ? 'Festa Junina 2026' : tipo === 'operacao' ? 'Operação Chuvas Dezembro' : 'Simulado Barragem 2026'}`}
+              placeholder={`Ex: ${cfg.exemploNome}`}
               value={nome}
               onChange={e => setNome(e.target.value)}
             />
@@ -2083,11 +2147,41 @@ function FormularioPlano({
             <label className="plan-form-label">Descrição</label>
             <textarea
               className="plan-form-textarea"
-              placeholder="Descreva o objetivo e contexto..."
+              placeholder={cfg.descricaoPlaceholder}
               value={descricao}
               onChange={e => setDescricao(e.target.value)}
               rows={2}
             />
+            <div style={{ marginTop: '0.6rem' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', marginBottom: '0.35rem' }}>
+                Ações da Guarda Municipal — toque para incluir na descrição
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                {cfg.atividades.map(atividade => (
+                  <button
+                    key={atividade}
+                    type="button"
+                    onClick={() => setDescricao(atual => {
+                      if (atual.split('\n').some(linha => linha.replace(/^[•-]\s*/, '').trim() === atividade)) return atual
+                      return `${atual.trim()}${atual.trim() ? '\n' : ''}• ${atividade}`
+                    })}
+                    style={{
+                      border: `1px solid ${cfg.cor}55`,
+                      borderRadius: 999,
+                      background: `${cfg.cor}0d`,
+                      color: cfg.cor,
+                      padding: '0.32rem 0.6rem',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    + {atividade}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="plan-form-group">
@@ -2256,10 +2350,10 @@ function FormularioPlano({
           <div className="plan-form-secao">🏛️ Órgãos Empenhados</div>
           <OrgaosPanel selecionados={equipe} onChange={setEquipe} />
 
-          <div className="plan-form-secao">🧑‍🚒 Agentes da Defesa Civil</div>
+          <div className="plan-form-secao">🛡️ Agentes da Guarda Municipal</div>
           <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 10, padding: '0.6rem 0.7rem', marginBottom: '0.3rem' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#166534', marginBottom: '0.45rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Selecione os agentes escalados para este planejamento
+              Selecione os agentes da Guarda escalados para este planejamento
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
               {AGENTES.map(ag => {
@@ -2337,11 +2431,11 @@ function FormularioPlano({
             <button className="plan-btn-add" onClick={adicionarMaterial}>+ Add</button>
           </div>
 
-          <div className="plan-form-secao">📝 Observações</div>
+          <div className="plan-form-secao">📝 Observações operacionais</div>
           <div className="plan-form-group">
             <textarea
               className="plan-form-textarea"
-              placeholder="Observações gerais, pontos de atenção, contatos importantes..."
+              placeholder="Pontos de atenção, contatos, orientação de serviço e informações para a passagem de equipe..."
               value={observacoes}
               onChange={e => setObservacoes(e.target.value)}
               rows={3}
@@ -2509,7 +2603,7 @@ function PrevisaoTempoCompleta({ lat, lng, data, horario }: { lat: number; lng: 
 async function exportarEventoExcel(plano: Plano) {
   const ExcelJS = (await import('exceljs')).default
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'CODAP - Conselheiro Lafaiete'
+  wb.creator = 'Guarda Municipal - Conselheiro Lafaiete'
   const ws = wb.addWorksheet('Evento', { pageSetup: { paperSize: 9, orientation: 'portrait' } })
 
   ws.columns = [
@@ -2521,7 +2615,7 @@ async function exportarEventoExcel(plano: Plano) {
   const estiloSecao = { font: { bold: true, size: 10, color: { argb: 'FFFFFFFF' } }, fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FF059669' } } }
   const estiloLabel = { font: { bold: true, size: 9, color: { argb: 'FF374151' } }, fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFF1F5F9' } } }
 
-  const r1 = ws.addRow(['CODAP — Conselheiro Lafaiete — ' + plano.nome, ''])
+  const r1 = ws.addRow(['Guarda Municipal — Conselheiro Lafaiete — ' + plano.nome, ''])
   ws.mergeCells(`A${r1.number}:B${r1.number}`)
   Object.assign(r1.getCell(1), estiloTitulo)
   r1.height = 22
@@ -3945,7 +4039,7 @@ function MapaSecaoPlanos({
 
         {/* Abas */}
         <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.45rem', flexWrap: 'wrap' }}>
-          {([['icones','🗺️ Ícones'],['orgaos','🏛️ Órgãos'],['materiais','📦 Materiais'],['agentes','🧑‍🚒 Agentes DC']] as const).map(([a,l]) => (
+          {([['icones','🗺️ Ícones'],['orgaos','🏛️ Órgãos'],['materiais','📦 Materiais'],['agentes','🛡️ Agentes GM']] as const).map(([a,l]) => (
             <button key={a} onClick={() => { setAba(a); setItemSelecionado(null) }}
               style={{ background: aba===a?'#1a4b8c':'#e0e7ff', color: aba===a?'white':'#1e3a8a', border:'none', borderRadius:20, padding:'0.22rem 0.62rem', fontSize:'0.72rem', fontWeight:700, cursor:'pointer' }}>
               {l}
@@ -4384,8 +4478,8 @@ export default function Planejamento() {
           className={`plan-subtab radar-subtab ${subAba === 'radar' ? 'ativo' : ''}`}
           onClick={() => setSubAba('radar')}
         >
-          <img className="radar-tab-icon" src="/defesa-civil-logo.png" alt="" />
-          Radar DC
+          <img className="radar-tab-icon" src="/icon-192.png" alt="" />
+          Radar GM
         </button>
         {(['evento', 'operacao', 'simulado', 'emergencia'] as TipoPlano[]).map(t => {
           const c = TIPOS_CONFIG[t]
@@ -4418,7 +4512,7 @@ export default function Planejamento() {
 
       {subAba === 'radar' ? (
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-           <RadarDC />
+           <RadarGM />
         </div>
       ) : subAba === 'emergencia' ? (
         <div style={{ flex: 1, overflowY: 'auto' }}>

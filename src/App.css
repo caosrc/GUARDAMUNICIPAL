@@ -197,7 +197,7 @@ input, select, textarea { font-family: inherit; }
 }
 @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 
-/* ── Convocação do Radar DC — visível em qualquer aba ────────────── */
+/* ── Convocação do Radar GM — visível em qualquer aba ────────────── */
 .radar-convocacao-overlay {
   position: fixed;
   inset: 0;

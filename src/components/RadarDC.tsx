@@ -535,8 +535,8 @@ function tocarSininho() {
   } catch { /* áudio pode estar bloqueado até interação */ }
 }
 
-export default function RadarDC() {
-  const agente = getAgenteLogado() || 'Agente DC'
+export default function RadarGM() {
+  const agente = getAgenteLogado() || 'Agente GM'
   const [registros, setRegistros] = useState<RegistroRadar[]>([])
   const [dataSelecionada, setDataSelecionada] = useState(hoje())
   const [mes, setMes] = useState(() => new Date(`${hoje()}T12:00:00`))
@@ -616,7 +616,7 @@ export default function RadarDC() {
       ocorrenciasNotificadasRef.current.add(ocorrencia.id)
       if ('Notification' in window && Notification.permission === 'granted') {
         const detalhes = [ocorrencia.hora, ocorrencia.natureza || 'Ocorrência registrada', ocorrencia.endereco || 'Endereço não informado'].join(' · ')
-        new Notification('Nova ocorrência no Radar DC', { body: detalhes, tag: 'radar-ocorrencia-' + ocorrencia.id })
+        new Notification('Nova ocorrência no Radar GM', { body: detalhes, tag: 'radar-ocorrencia-' + ocorrencia.id })
       }
     })
   }, [])
@@ -1110,7 +1110,7 @@ export default function RadarDC() {
     const envolvidos = Array.isArray(mensagem.agentesEnvolvidos) ? mensagem.agentesEnvolvidos.map(String) : []
     if (!envolvidos.includes(agente) || String(mensagem.criadoPor) === agente) return
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Radar DC — você foi envolvido', {
+      new Notification('Radar GM — você foi envolvido', {
         body: `${String(mensagem.data || '')} às ${String(mensagem.hora || '')} · ${String(mensagem.texto || '')}`,
         tag: `radar-envolvido-${String(mensagem.id)}`,
       })
@@ -1120,8 +1120,8 @@ export default function RadarDC() {
   useEffect(() => wsOn('radar_confirmacao', (mensagem) => {
     if (String(mensagem.criadoPor) !== agente || !('Notification' in window) || Notification.permission !== 'granted') return
     const nome = String(mensagem.agente || 'Agente')
-      const texto = String(mensagem.texto || 'notificação do Radar DC')
-      new Notification(mensagem.confirmado === true ? '✅ Radar DC — presença confirmada' : '❌ Radar DC — presença recusada', {
+      const texto = String(mensagem.texto || 'notificação do Radar GM')
+      new Notification(mensagem.confirmado === true ? '✅ Radar GM — presença confirmada' : '❌ Radar GM — presença recusada', {
       body: mensagem.confirmado === true ? `${nome} confirmou presença: ${texto}` : `${nome} informou que não poderá ir: ${texto}`,
       tag: `radar-confirmacao-${String(mensagem.id)}-${nome}`,
     })
@@ -1189,7 +1189,7 @@ export default function RadarDC() {
        <section className={`radar-page ${tv ? 'radar-tv' : ''}`}>
        <div className="radar-tv-launcher">
          <div className="radar-tv-launcher-copy">
-           <span className="radar-tv-launcher-label">RADAR DC</span>
+            <span className="radar-tv-launcher-label">RADAR GM</span>
            <span className="radar-tv-launcher-hint">Painel operacional</span>
          </div>
           <div className="radar-tv-clock" aria-label="Hora atual">
@@ -1341,7 +1341,7 @@ export default function RadarDC() {
                ))}
              </div>
            </fieldset>
-           <button className="radar-add" type="submit" disabled={!textoNotificacao.trim() || salvando}>{salvando ? 'Salvando...' : registroEmEdicao ? 'Salvar alterações' : '+ Colocar no Radar DC'}</button>
+           <button className="radar-add" type="submit" disabled={!textoNotificacao.trim() || salvando}>{salvando ? 'Salvando...' : registroEmEdicao ? 'Salvar alterações' : '+ Colocar no Radar GM'}</button>
            {registroEmEdicao && <button type="button" className="radar-cancel-edit" onClick={() => { setRegistroEmEdicao(null); setTextoNotificacao(''); setAgentesEnvolvidos([]); setEditorAberto(false) }}>Cancelar edição</button>}
            {erroSalvamento && <p className="radar-save-error" role="alert">{erroSalvamento}</p>}
          </form>}
@@ -1549,7 +1549,7 @@ export default function RadarDC() {
       </div>
        </div>
       <div className="radar-ticker">
-        <span>RADAR DC</span>
+        <span>RADAR GM</span>
         <div className="radar-ticker-viewport">
           {(() => {
              const filaTicker = notificacoesDoRadar

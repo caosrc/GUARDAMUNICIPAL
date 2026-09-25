@@ -110,6 +110,7 @@ interface ItemMapaOp {
 
 // ── Dados padrão ──────────────────────────────────────────────────────
 const CONTATOS_PADRAO: Contato[] = [
+  { id: 'c0', nome: 'Guarda Municipal', cargo: 'Coordenação operacional', orgao: 'Guarda Municipal', telefone: '', telefone2: '', emoji: '🛡️', prioridade: 1 },
   { id: 'c1', nome: 'SAMU', cargo: 'Emergência Médica', orgao: 'SAMU', telefone: '192', telefone2: '', emoji: '🚑', prioridade: 1 },
   { id: 'c2', nome: 'Bombeiros', cargo: 'Emergência', orgao: 'Corpo de Bombeiros', telefone: '193', telefone2: '', emoji: '🚒', prioridade: 1 },
   { id: 'c3', nome: 'Polícia Militar', cargo: 'Segurança Pública', orgao: 'PM-MG', telefone: '190', telefone2: '', emoji: '🚓', prioridade: 1 },
@@ -118,29 +119,29 @@ const CONTATOS_PADRAO: Contato[] = [
 ]
 
 const CHECKLIST_PADRAO: CheckItem[] = [
-  { id: 'ck1', texto: 'Acionar equipe operacional', categoria: 'Ativação', feito: false, responsavel: '' },
-  { id: 'ck2', texto: 'Confirmar disponibilidade de viaturas', categoria: 'Ativação', feito: false, responsavel: '' },
-  { id: 'ck3', texto: 'Abrir abrigo principal', categoria: 'Abrigos', feito: false, responsavel: '' },
-  { id: 'ck4', texto: 'Verificar suprimentos de água e alimentação', categoria: 'Abrigos', feito: false, responsavel: '' },
-  { id: 'ck5', texto: 'Interditar vias de risco', categoria: 'Segurança', feito: false, responsavel: '' },
-  { id: 'ck6', texto: 'Emitir alerta à população', categoria: 'Comunicação', feito: false, responsavel: '' },
-  { id: 'ck7', texto: 'Acionar Defesa Civil Estadual', categoria: 'Comunicação', feito: false, responsavel: '' },
-  { id: 'ck8', texto: 'Registrar início da operação', categoria: 'Registro', feito: false, responsavel: '' },
-  { id: 'ck9', texto: 'Atualizar mapa operacional', categoria: 'Registro', feito: false, responsavel: '' },
-  { id: 'ck10', texto: 'Verificar comunicação rádio', categoria: 'Comunicação', feito: false, responsavel: '' },
+  { id: 'ck1', texto: 'Acionar a equipe operacional da Guarda Municipal', categoria: 'Ativação', feito: false, responsavel: '' },
+  { id: 'ck2', texto: 'Confirmar disponibilidade de viaturas e rádios', categoria: 'Ativação', feito: false, responsavel: '' },
+  { id: 'ck3', texto: 'Identificar acessos seguros e pontos de apoio definidos pela coordenação', categoria: 'Segurança', feito: false, responsavel: '' },
+  { id: 'ck4', texto: 'Orientar a circulação e apoiar interdições determinadas pelo órgão responsável', categoria: 'Segurança', feito: false, responsavel: '' },
+  { id: 'ck5', texto: 'Proteger o perímetro e evitar o acesso a áreas de risco', categoria: 'Segurança', feito: false, responsavel: '' },
+  { id: 'ck6', texto: 'Repassar orientações oficiais à população conforme a coordenação da resposta', categoria: 'Comunicação', feito: false, responsavel: '' },
+  { id: 'ck7', texto: 'Acionar a Defesa Civil municipal e os demais órgãos responsáveis', categoria: 'Comunicação', feito: false, responsavel: '' },
+  { id: 'ck8', texto: 'Registrar início da operação, responsáveis e horários', categoria: 'Registro', feito: false, responsavel: '' },
+  { id: 'ck9', texto: 'Atualizar mapa com bloqueios, acessos e pontos de apoio', categoria: 'Registro', feito: false, responsavel: '' },
+  { id: 'ck10', texto: 'Verificar comunicação por rádio e confirmar recebimento das mensagens', categoria: 'Comunicação', feito: false, responsavel: '' },
 ]
 
 const RECURSOS_PADRAO: Recurso[] = [
   { id: 'r1', nome: 'Tendas de Campanha', emoji: '⛺', categoria: 'Estrutura', quantidade: 4, unidade: 'un', localizacao: 'Depósito Central', disponivel: true, obs: '' },
   { id: 'r2', nome: 'Coletes Salva-Vidas', emoji: '🦺', categoria: 'Segurança', quantidade: 20, unidade: 'un', localizacao: 'Depósito Central', disponivel: true, obs: '' },
-  { id: 'r3', nome: 'Rádios Comunicação', emoji: '📻', categoria: 'Comunicação', quantidade: 8, unidade: 'un', localizacao: 'Sede DC', disponivel: true, obs: '' },
+  { id: 'r3', nome: 'Rádios Comunicação', emoji: '📻', categoria: 'Comunicação', quantidade: 8, unidade: 'un', localizacao: 'Base da Guarda Municipal', disponivel: true, obs: '' },
   { id: 'r4', nome: 'Gerador de Energia', emoji: '⚡', categoria: 'Infraestrutura', quantidade: 2, unidade: 'un', localizacao: 'Depósito Central', disponivel: true, obs: '' },
   { id: 'r5', nome: 'Cones de Sinalização', emoji: '🟧', categoria: 'Sinalização', quantidade: 50, unidade: 'un', localizacao: 'Depósito Central', disponivel: true, obs: '' },
-  { id: 'r6', nome: 'Kit Primeiros Socorros', emoji: '🏥', categoria: 'Saúde', quantidade: 10, unidade: 'kit', localizacao: 'Sede DC', disponivel: true, obs: '' },
+  { id: 'r6', nome: 'Kit Primeiros Socorros', emoji: '🏥', categoria: 'Saúde', quantidade: 10, unidade: 'kit', localizacao: 'Base da Guarda Municipal', disponivel: true, obs: '' },
 ]
 
 const EQUIPES_PADRAO: Equipe[] = [
-  { id: 'eq1', nome: 'CODAP', orgao: 'Prefeitura Municipal', emoji: '🛡️', responsavel: 'Coordenação CODAP', telefone: '(31) 0000-0000', missao: 'Coordenação geral e avaliação de risco', membros: [], setor: 'Coordenação' },
+  { id: 'eq1', nome: 'Guarda Municipal', orgao: 'Prefeitura Municipal', emoji: '🛡️', responsavel: 'Coordenação operacional', telefone: '', missao: 'Patrulhamento preventivo, proteção de pessoas e do patrimônio público e comunicação com os órgãos de resposta.', membros: [], setor: 'Segurança e apoio operacional' },
   { id: 'eq2', nome: 'Corpo de Bombeiros', orgao: 'CBMMG', emoji: '🚒', responsavel: 'Cap. Bombeiros', telefone: '193', missao: 'Busca, resgate e combate a incêndio', membros: [], setor: 'Resgate' },
   { id: 'eq3', nome: 'SAMU', orgao: 'Saúde Municipal', emoji: '🚑', responsavel: 'Coord. SAMU', telefone: '192', missao: 'Atendimento pré-hospitalar', membros: [], setor: 'Saúde' },
   { id: 'eq4', nome: 'Polícia Militar', orgao: 'PM-MG', emoji: '🚓', responsavel: 'Sgt. PM', telefone: '190', missao: 'Segurança e isolamento de área', membros: [], setor: 'Segurança' },
@@ -795,7 +796,7 @@ export default function PlanoEmergencia() {
                   </div>
                 )}
               </div>
-              <div className="pe-section-title" style={{ marginTop: 10 }}>Agentes do CODAP</div>
+              <div className="pe-section-title" style={{ marginTop: 10 }}>Agentes da Guarda Municipal</div>
               <div className="pe-lista-inline">
                 {AGENTES.map(ag => (
                   <button key={ag}
@@ -966,7 +967,7 @@ export default function PlanoEmergencia() {
         <div className="pe-modal">
           <div className="pe-modal-handle" />
           <div className="pe-modal-title">
-            🚨 {editPlano ? 'Editar Plano' : 'Novo Plano de Emergência'}
+            🚨 {editPlano ? 'Editar Plano' : 'Novo Plano de Resposta da Guarda'}
           </div>
 
           <div className="pe-form-group">
@@ -1475,9 +1476,12 @@ export default function PlanoEmergencia() {
       <div className="pe-header">
         <div className="pe-header-top">
           <span style={{ fontSize: '1.4rem' }}>🚨</span>
-          <h1>Plano de Emergência</h1>
+          <h1>Resposta Emergencial da Guarda</h1>
           <span className="pe-badge">Centro de Crise</span>
         </div>
+        <p style={{ margin: '0 0 0.75rem', maxWidth: 900, fontSize: '0.84rem', lineHeight: 1.45, color: '#475569' }}>
+          Organize patrulhamento, proteção do perímetro e apoio à circulação, em coordenação com os órgãos responsáveis pela resposta.
+        </p>
         <div className="pe-tabs">
           {TABS.map(t => (
             <button key={t.id} className={`pe-tab ${subAba === t.id ? 'ativo' : ''}`}
