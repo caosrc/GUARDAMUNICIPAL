@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Circle, CircleMarker, MapContainer, Pane, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import './RadarDC.css'
 import './RadarDCResponsive.css'
 import 'leaflet/dist/leaflet.css'
@@ -9,7 +9,7 @@ import { wsOn, wsSend } from '../wsClient'
 import { supabase, supabaseDisponivel } from '../supabaseClient'
 import { AGENTES } from '../types'
 import { ehFerramentalPorLitro } from '../ferramentalUtils'
-import { ChartaChuva, GraficoNivel, type EstacaoCNL, type LeituraCNL, type PontoNivel, type PontoSerie } from './MonitoramentoCNL'
+import { ChartaChuva, GraficoNivel } from './MonitoramentoCNL'
 import './MonitoramentoCNL.css'
 import ModalSenha from './ModalSenha'
 
@@ -19,6 +19,19 @@ type RegistroRadar = {
   id: string; texto: string; data: string; hora: string; prioridade: Prioridade
   concluido: boolean; criadoPor: string; criadoEm: string; tipo: 'lembrete' | 'notificacao'
   agentesEnvolvidos: string[]; confirmacoesAgentes: ConfirmacaoRadar[]
+}
+export type RadarPatrulhamento = {
+  id: string
+  nome: string
+  dataInicio: string
+  horario: string
+  horarioFim?: string
+  local: string
+  lat: number | null
+  lng: number | null
+  status: string
+  agentesDefesaCivil?: string[]
+  itensMapa: Array<{ id: string; tipo: string; emoji: string; lat: number; lng: number; obs?: string }>
 }
 type Atividade = {
   id: number; agente: string; hora: string; placa?: string; natureza?: string
@@ -66,16 +79,9 @@ type DadosRadarChuvaLive = {
   erroAtualizacao?: boolean
 }
 
-const CONSELHEIRO_LAFAIETE = { latitude: -20.6604, longitude: -43.7863 }
-const RADAR_MAP_CENTER: [number, number] = [CONSELHEIRO_LAFAIETE.latitude, CONSELHEIRO_LAFAIETE.longitude]
-const RADAR_MAP_ZOOM = 12
-const RADAR_CHUVA_RAIO_METROS = 10_000
-// Serviço público NOAA/NNVL com imagens infravermelhas diárias do GOES.
-// A variável de ambiente continua disponível para trocar a fonte sem alterar o código.
-const GOES_CLOUD_TILE_URL = String(
-  import.meta.env.VITE_GOES_CLOUD_TILES_URL
-    || 'https://gis.nnvl.noaa.gov/arcgis/rest/services/GOES/GOES_current/ImageServer/tile/{z}/{y}/{x}',
-).trim()
+const CONGONHAS = { latitude: -20.4958, longitude: -43.8578 }
+const RADAR_MAP_CENTER: [number, number] = [CONGONHAS.latitude, CONGONHAS.longitude]
+const RADAR_MAP_ZOOM = 13
 const nomesTempo: Record<number, string> = { 0: 'Céu limpo', 1: 'Predominantemente limpo', 2: 'Parcialmente nublado', 3: 'Nublado', 45: 'Neblina', 48: 'Neblina com gelo', 51: 'Garoa leve', 53: 'Garoa moderada', 55: 'Garoa intensa', 61: 'Chuva leve', 63: 'Chuva moderada', 65: 'Chuva forte', 71: 'Neve leve', 73: 'Neve moderada', 75: 'Neve forte', 80: 'Pancadas leves', 81: 'Pancadas moderadas', 82: 'Pancadas fortes', 95: 'Trovoada', 96: 'Trovoada com granizo', 99: 'Trovoada forte' }
 function horarioNoturno(time?: string) {
   const hora = Number(time?.slice(11, 13))
@@ -190,20 +196,6 @@ function formatarMmMapaRadar(valor: number | null | undefined) {
   return `${numero.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mm`
 }
 
-function templateTilesHttpsValido(url: string) {
-  return /^https:\/\//i.test(url) && ['{z}', '{x}', '{y}'].every(token => url.includes(token))
-}
-
-function intensidadeCemadenRadar(valor: number | null | undefined) {
-  if (valor == null || !Number.isFinite(valor) || valor <= 0) return { cor: '#38bdf8', alpha: 0 }
-  if (valor <= 2) return { cor: '#38bdf8', alpha: 0.48 }
-  if (valor <= 10) return { cor: '#22c55e', alpha: 0.5 }
-  if (valor <= 30) return { cor: '#facc15', alpha: 0.52 }
-  if (valor <= 50) return { cor: '#f97316', alpha: 0.56 }
-  if (valor <= 80) return { cor: '#ef4444', alpha: 0.6 }
-  return { cor: '#a855f7', alpha: 0.64 }
-}
-
 function dataHoraRadar(valor?: string | null) {
   if (!valor) return 'Sem leitura'
   const brasileiro = valor.match(/^(\d{2})\/(\d{2})\/(\d{2,4})\s+(\d{2}):(\d{2})/)
@@ -223,88 +215,40 @@ function RadarMapInvalidateSize({ tv }: { tv: boolean }) {
   return null
 }
 
-function RadarMapaTempoReal({ dadosCNL, tv }: { dadosCNL: DadosRadarCNL | null; tv: boolean }) {
+function RadarMapaTempoReal({
+  patrulhamentos,
+  dataSelecionada,
+  tv,
+}: {
+  patrulhamentos: RadarPatrulhamento[]
+  dataSelecionada: string
+  tv: boolean
+}) {
   const [camadaBase, setCamadaBase] = useState<'mapa' | 'satelite'>('mapa')
-  const [radarChuva, setRadarChuva] = useState<DadosRadarChuvaLive | null>(null)
-  const [radarErro, setRadarErro] = useState('')
-  const [radarCarregando, setRadarCarregando] = useState(false)
-  const [mostrarChuva, setMostrarChuva] = useState(true)
-  const [mostrarNuvens] = useState(false)
-
-  const carregarRadarChuva = useCallback(async () => {
-    setRadarCarregando(true)
-    try {
-      const resposta = await fetch(`/api/radar-chuva?_ts=${Date.now()}`, { cache: 'no-store' })
-      const corpo = await resposta.json().catch(() => ({}))
-      if (!resposta.ok || typeof corpo?.host !== 'string' || typeof corpo?.path !== 'string') {
-        throw new Error('Radar indisponível')
-      }
-      setRadarChuva({
-        host: corpo.host,
-        path: corpo.path,
-        tileUrl: typeof corpo.tileUrl === 'string' ? corpo.tileUrl : undefined,
-        frameTime: Number(corpo.frameTime),
-        atualizadoEm: typeof corpo.atualizadoEm === 'string' ? corpo.atualizadoEm : '',
-        erroAtualizacao: corpo.erroAtualizacao === true,
-      })
-      setRadarErro('')
-    } catch (error) {
-      setRadarErro(error instanceof Error ? error.message : 'Radar indisponível')
-    } finally {
-      setRadarCarregando(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    carregarRadarChuva()
-    const timer = window.setInterval(carregarRadarChuva, 5 * 60 * 1000)
-    const atualizarAoVoltar = () => {
-      if (document.visibilityState === 'visible') carregarRadarChuva()
-    }
-    document.addEventListener('visibilitychange', atualizarAoVoltar)
-    return () => {
-      window.clearInterval(timer)
-      document.removeEventListener('visibilitychange', atualizarAoVoltar)
-    }
-  }, [carregarRadarChuva])
-
-  const estacoes = dadosCNL?.estacoes || []
-  const tileRadar = radarChuva?.tileUrl || (radarChuva ? `${radarChuva.host}${radarChuva.path}/256/{z}/{x}/{y}/2/1_0.png` : '')
+  const planosDoDia = patrulhamentos.filter(plano => plano.dataInicio === dataSelecionada)
+  const itensDoDia = planosDoDia.flatMap(plano => plano.itensMapa.map(item => ({ ...item, planoNome: plano.nome, planoId: plano.id })))
 
   return (
     <section className="radar-live-map-card" aria-labelledby="radar-live-map-title">
       <div className="radar-live-map-heading">
         <div>
-          <span className="card-label">MAPA METEOROLÓGICO</span>
-          <h3 id="radar-live-map-title">Conselheiro Lafaiete em tempo real</h3>
+          <span className="card-label">MAPA OPERACIONAL</span>
+          <h3 id="radar-live-map-title">Congonhas — patrulhamento do dia</h3>
         </div>
-        <span className="radar-live-map-updated">
-          {radarCarregando ? 'Atualizando…' : radarChuva?.erroAtualizacao ? 'Último quadro salvo' : 'Atualização automática · 5 min'}
-        </span>
+        <span className="radar-live-map-updated">{dataBonita(dataSelecionada)} · {planosDoDia.length} local(is)</span>
       </div>
       <div className="radar-live-map-toolbar" role="toolbar" aria-label="Controles do mapa meteorológico">
         <div className="radar-live-map-base-buttons">
           <button type="button" className={camadaBase === 'mapa' ? 'ativo' : ''} onClick={() => setCamadaBase('mapa')}>Mapa</button>
           <button type="button" className={camadaBase === 'satelite' ? 'ativo' : ''} onClick={() => setCamadaBase('satelite')}>Satélite</button>
         </div>
-        <button type="button" className={`radar-live-map-layer-button ${mostrarChuva ? 'ativo chuva' : ''}`} onClick={() => setMostrarChuva(prev => !prev)} aria-pressed={mostrarChuva}>
-          🌧️ Chuva {mostrarChuva ? 'ativa' : 'desativada'}
-        </button>
-        <button
-          type="button"
-          className={`radar-live-map-layer-button ${mostrarNuvens ? 'ativo nuvens' : ''}`}
-          disabled
-          aria-pressed={mostrarNuvens}
-          title="Camada de nuvens desabilitada neste mapa"
-        >
-          ☁️ Nuvens
-        </button>
+        <span className="radar-map-hint">Selecione um patrulhamento no calendário para ver agentes e viaturas no local</span>
       </div>
       <div className="radar-live-map-status">
-        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-rain" /> Chuva observada</span>
-        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-station" /> Estações CEMADEN</span>
-        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-area" /> Raio de 10 km</span>
-        {radarErro && <strong>{radarErro}</strong>}
+        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-plan" /> Local do patrulhamento</span>
+        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-agent" /> Agente escalado</span>
+        <span><i className="radar-live-map-status-dot radar-live-map-status-dot-vehicle" /> Viatura</span>
+        {planosDoDia.length === 0 && <strong>Nenhum patrulhamento cadastrado nesta data.</strong>}
       </div>
       <MapContainer
         className="radar-live-map"
@@ -333,81 +277,53 @@ function RadarMapaTempoReal({ dadosCNL, tv }: { dadosCNL: DadosRadarCNL | null; 
             maxZoom={18}
           />
         )}
-        {mostrarNuvens && templateTilesHttpsValido(GOES_CLOUD_TILE_URL) && (
-          <Pane name="radarLiveClouds" style={{ zIndex: 410 }}>
-            <TileLayer
-              key={`radar-live-clouds-${GOES_CLOUD_TILE_URL}`}
-              url={GOES_CLOUD_TILE_URL}
-              opacity={0.55}
-              maxNativeZoom={8}
-              maxZoom={18}
-              attribution='Cloud imagery &copy; <a href="https://gis.nnvl.noaa.gov/arcgis/rest/services/GOES/GOES_current/ImageServer" target="_blank" rel="noreferrer">NOAA GOES</a>'
-            />
-          </Pane>
-        )}
-        {mostrarChuva && tileRadar && (
-          <Pane name="radarLiveRain" style={{ zIndex: 420 }}>
-            <TileLayer
-              key={`radar-live-rain-${radarChuva?.frameTime || 'none'}`}
-              url={tileRadar}
-              opacity={0.72}
-              maxNativeZoom={7}
-              maxZoom={18}
-              tileSize={256}
-              attribution='Weather data by <a href="https://www.rainviewer.com/" target="_blank" rel="noreferrer">RainViewer</a>'
-            />
-          </Pane>
-        )}
-        {mostrarChuva && (
-          <Circle
-            center={RADAR_MAP_CENTER}
-            radius={RADAR_CHUVA_RAIO_METROS}
-            pathOptions={{ color: '#1d4ed8', weight: 2, opacity: 0.9, dashArray: '7 5', fillColor: '#60a5fa', fillOpacity: 0.05 }}
+        <CircleMarker center={RADAR_MAP_CENTER} radius={7} pathOptions={{ color: '#fff', weight: 3, fillColor: '#1d4ed8', fillOpacity: 1 }}>
+          <Tooltip permanent direction="top" offset={[0, -8]} className="radar-live-map-tooltip">Congonhas · centro operacional</Tooltip>
+          <Popup><strong>Congonhas - MG</strong><br />Mapa operacional da Guarda Municipal.</Popup>
+        </CircleMarker>
+        {planosDoDia.filter(plano => plano.lat != null && plano.lng != null).map(plano => (
+          <CircleMarker
+            key={`patrulhamento-${plano.id}`}
+            center={[plano.lat!, plano.lng!]}
+            radius={12}
+            pathOptions={{ color: '#f8fafc', weight: 3, fillColor: '#f59e0b', fillOpacity: .95 }}
           >
+            <Tooltip permanent direction="top" offset={[0, -12]} className="radar-live-map-tooltip">
+              {plano.horario || '—'} · {plano.nome}
+            </Tooltip>
             <Popup>
-              <strong>Área de observação da chuva</strong>
-              <br />
-              Raio de 10 km a partir do centro de Conselheiro Lafaiete
+              <strong>🛡️ {plano.nome}</strong><br />
+              📍 {plano.local || 'Local não informado'}<br />
+              ⏰ {plano.horario || 'Horário não informado'}{plano.horarioFim ? ` – ${plano.horarioFim}` : ''}
+              <br />👥 {(plano.agentesDefesaCivil ?? []).length} agente(s) · 🚓 {itensDoDia.filter(item => item.planoId === plano.id && item.tipo === 'viatura').length} viatura(s)
             </Popup>
-          </Circle>
-        )}
-        {mostrarChuva && estacoes.filter(estacao => Number.isFinite(estacao.latitude) && Number.isFinite(estacao.longitude)).map(estacao => {
-          const intensidade = intensidadeCemadenRadar(estacao.precipitacaoAtual)
+          </CircleMarker>
+        ))}
+        {itensDoDia.filter(item => Number.isFinite(item.lat) && Number.isFinite(item.lng)).map(item => {
+          const viatura = item.tipo === 'viatura'
+          const agente = item.tipo === 'agente_dc'
           return (
             <CircleMarker
-              key={`radar-live-station-${estacao.id}`}
-              center={[estacao.latitude, estacao.longitude]}
-              radius={8}
-              pathOptions={{ color: '#fff', weight: 2, fillColor: intensidade.cor, fillOpacity: 0.95 }}
+              key={`patrulhamento-item-${item.planoId}-${item.id}`}
+              center={[item.lat, item.lng]}
+              radius={viatura ? 9 : 7}
+              pathOptions={{ color: '#fff', weight: 2, fillColor: viatura ? '#0ea5e9' : agente ? '#16a34a' : '#64748b', fillOpacity: .95 }}
             >
-              <Tooltip permanent direction="top" offset={[0, -7]} opacity={0.96} className="radar-live-map-tooltip">
-                {formatarMmMapaRadar(estacao.precipitacaoAtual)}
+              <Tooltip permanent direction="top" offset={[0, -7]} className="radar-live-map-tooltip">
+                {item.emoji} {item.obs || (viatura ? 'Viatura' : agente ? 'Agente' : item.tipo)}
               </Tooltip>
               <Popup>
-                <strong>🌧️ {estacao.nome || 'Estação CEMADEN'}</strong>
-                <br />
-                Precipitação atual: <b>{formatarMmMapaRadar(estacao.precipitacaoAtual)}</b>
-                <br />
-                Leitura: {dataHoraRadar(estacao.precipitacaoDataHora)}
-                {estacao.codigo ? <><br />Estação {estacao.codigo}</> : null}
+                <strong>{item.emoji} {item.obs || item.tipo}</strong><br />
+                {viatura ? 'Viatura posicionada no patrulhamento.' : agente ? 'Agente escalado no local.' : 'Recurso posicionado no local.'}
+                <br /><small>{item.planoNome}</small>
               </Popup>
             </CircleMarker>
           )
         })}
-        {mostrarChuva && (
-          <CircleMarker center={RADAR_MAP_CENTER} radius={5} pathOptions={{ color: '#0f172a', weight: 2, fillColor: '#f8fafc', fillOpacity: 1 }}>
-            <Popup>
-              <strong>Centro de Conselheiro Lafaiete</strong>
-              <br />
-              Chuva observada e estações CEMADEN atualizadas automaticamente.
-            </Popup>
-          </CircleMarker>
-        )}
       </MapContainer>
       <div className="radar-live-map-footer">
-        <span>{dadosCNL ? `${estacoes.length} estação(ões) CEMADEN` : 'Consultando estações CEMADEN…'}</span>
-        <span>{radarChuva?.atualizadoEm ? `Radar: ${new Date(radarChuva.atualizadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Radar: —'}</span>
-        {!templateTilesHttpsValido(GOES_CLOUD_TILE_URL) && <span>Nuvens GOES: fonte não configurada</span>}
+        <span>Congonhas - MG · planejamento operacional</span>
+        <span>{itensDoDia.length} item(ns) posicionados</span>
       </div>
     </section>
   )
@@ -535,7 +451,15 @@ function tocarSininho() {
   } catch { /* áudio pode estar bloqueado até interação */ }
 }
 
-export default function RadarGM() {
+export default function RadarGM({
+  patrulhamentos = [],
+  onNovoPatrulhamento,
+  onAbrirPatrulhamento,
+}: {
+  patrulhamentos?: RadarPatrulhamento[]
+  onNovoPatrulhamento?: (data: string) => void
+  onAbrirPatrulhamento?: (id: string) => void
+}) {
   const agente = getAgenteLogado() || 'Agente GM'
   const [registros, setRegistros] = useState<RegistroRadar[]>([])
   const [dataSelecionada, setDataSelecionada] = useState(hoje())
@@ -555,10 +479,16 @@ export default function RadarGM() {
     ferramentasCatalogo: FerramentaCatalogo[]
     ocorrencias: Atividade[]
   }>({ checklists: [], checklistsFerramentas: [], ferramentasCatalogo: [], ocorrencias: [] })
-  const [tempo, setTempo] = useState<TempoDC | null>(null)
-  const [dadosCNL, setDadosCNL] = useState<DadosRadarCNL | null>(null)
   const [horaAtual, setHoraAtual] = useState(() => new Date())
-  const [erroTempo, setErroTempo] = useState('')
+  // Mantidos como valores vazios para preservar compatibilidade com a composição
+  // antiga do Radar; o painel operacional não exibe mais clima ou hidrologia.
+  const tempo: TempoDC | null = null
+  const dadosCNL: DadosRadarCNL | null = null
+  const erroTempo = ''
+  const estadosClima: EstadoVisualTempo[] = ['normal']
+  const cenaClima: { tipo: CenaClima; caminho: string; nome: string } | null = null
+  const diasPrecipitacao: string[] = []
+  const resumoPrecipitacao = ''
   const [salvando, setSalvando] = useState(false)
   const [marcandoCienteId, setMarcandoCienteId] = useState<string | null>(null)
   const [erroSalvamento, setErroSalvamento] = useState('')
@@ -722,86 +652,6 @@ export default function RadarGM() {
 
 
   useEffect(() => {
-    let ativo = true
-    const carregarTempo = async () => {
-      try {
-        const params = new URLSearchParams({ latitude: String(CONSELHEIRO_LAFAIETE.latitude), longitude: String(CONSELHEIRO_LAFAIETE.longitude), current: 'temperature_2m,weather_code,precipitation,relative_humidity_2m,wind_speed_10m,wind_gusts_10m', hourly: 'temperature_2m,weather_code,precipitation_probability,precipitation,wind_speed_10m', daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,relative_humidity_2m_min,wind_speed_10m_max,wind_gusts_10m_max', timezone: 'America/Sao_Paulo', forecast_days: '7', wind_speed_unit: 'kmh', precipitation_unit: 'mm' })
-         const res = await fetch('https://api.open-meteo.com/v1/forecast?' + params, { cache: 'no-store' })
-        if (!res.ok) throw new Error('Serviço meteorológico indisponível.')
-        const json = await res.json() as { current: Record<string, number>; hourly: Record<string, Array<string | number>>; daily: Record<string, Array<string | number>> }
-        if (!ativo) return
-        const hourly = json.hourly || {}
-        const horas = (hourly.time || []).map((time, i) => ({
-          time: String(time),
-          codigo: Number(hourly.weather_code?.[i] ?? 0),
-          temperatura: Number(hourly.temperature_2m?.[i] ?? 0),
-          probabilidade: Number(hourly.precipitation_probability?.[i] ?? 0),
-          precipitacao: Number(hourly.precipitation?.[i] ?? 0),
-          vento: Number(hourly.wind_speed_10m?.[i] ?? 0),
-        })).filter(h => new Date(h.time).getTime() >= Date.now()).slice(0, 12)
-        setTempo({
-          atual: { codigo: json.current.weather_code, temperatura: json.current.temperature_2m, chuva: json.current.precipitation, vento: json.current.wind_speed_10m, rajada: json.current.wind_gusts_10m, umidade: json.current.relative_humidity_2m },
-          horas,
-          dias: json.daily.time.map((data, i) => ({ data: String(data), codigo: Number(json.daily.weather_code[i]), temperaturaMax: Number(json.daily.temperature_2m_max[i]), temperaturaMin: Number(json.daily.temperature_2m_min[i]), precipitacao: Number(json.daily.precipitation_sum[i]), probabilidade: Number(json.daily.precipitation_probability_max[i]), umidade: Number(json.daily.relative_humidity_2m_min[i]), vento: Number(json.daily.wind_speed_10m_max[i]), rajada: Number(json.daily.wind_gusts_10m_max[i]) }))
-        })
-        setErroTempo('')
-      } catch (error) {
-        if (ativo) setErroTempo(error instanceof Error ? error.message : 'Não foi possível carregar o tempo.')
-      }
-    }
-     carregarTempo()
-     const timer = window.setInterval(carregarTempo, 5 * 60 * 1000)
-     const atualizarAoVoltar = () => {
-       if (document.visibilityState === 'visible') carregarTempo()
-     }
-     document.addEventListener('visibilitychange', atualizarAoVoltar)
-     return () => {
-       ativo = false
-       window.clearInterval(timer)
-       document.removeEventListener('visibilitychange', atualizarAoVoltar)
-     }
-  }, [])
-
-  useEffect(() => {
-    let ativo = true
-    const carregarNivelRio = async () => {
-      try {
-        const resposta = await fetch('/api/monitoramento-cnl', { cache: 'no-store' })
-         const corpo = await resposta.json() as {
-           sucesso?: boolean
-           estacao?: LeituraCNL
-           estacoes?: RadarEstacaoCNL[]
-           serie?: PontoSerie[]
-           serieChuvaCentro?: PontoSerie[]
-           estacaoChuvaCentro?: { nome: string; codigo?: string } | null
-           serieNivel?: PontoNivel[]
-         }
-        if (!resposta.ok || !corpo.sucesso || !corpo.estacao || !Array.isArray(corpo.serieNivel)) {
-          throw new Error('Dados do Rio Bananeiras indisponíveis.')
-        }
-         if (ativo) {
-           setDadosCNL({
-             estacao: corpo.estacao,
-             estacoes: Array.isArray(corpo.estacoes) ? corpo.estacoes : [corpo.estacao],
-             serie: Array.isArray(corpo.serie) ? corpo.serie : [],
-              serieChuvaCentro: Array.isArray(corpo.serieChuvaCentro) ? corpo.serieChuvaCentro : [],
-              estacaoChuvaCentro: corpo.estacaoChuvaCentro || null,
-             serieNivel: corpo.serieNivel,
-           })
-         }
-      } catch {
-        // O gráfico é complementar ao Radar; a falha não deve ocultar os registros.
-      }
-    }
-    carregarNivelRio()
-    const timer = window.setInterval(carregarNivelRio, 5 * 60 * 1000)
-    return () => {
-      ativo = false
-      window.clearInterval(timer)
-    }
-  }, [])
-
-  useEffect(() => {
     carregar()
     const off = wsOn('radar_bilhetes_atualizados', () => {
       tocarSininho()
@@ -843,33 +693,7 @@ export default function RadarGM() {
     () => resumirFerramental(atividades.checklistsFerramentas, atividades.ferramentasCatalogo),
     [atividades.checklistsFerramentas, atividades.ferramentasCatalogo],
   )
-  const destaquesTempo = useMemo(() => {
-    if (!tempo?.dias.length) return null
-    return {
-      chuva: tempo.dias.reduce((maior, dia) => dia.precipitacao > maior.precipitacao ? dia : maior),
-      umidade: tempo.dias.reduce((menor, dia) => dia.umidade < menor.umidade ? dia : menor),
-      rajada: tempo.dias.reduce((maior, dia) => dia.rajada > maior.rajada ? dia : maior),
-    }
-  }, [tempo])
-  const estadosClima = useMemo(
-    () => tempo ? estadosVisuaisTempo(tempo) : ['normal' as EstadoVisualTempo],
-    [tempo],
-  )
-  const cenaClima = useMemo(
-    () => tempo ? cenaClimaTempo(tempo) : null,
-    [tempo],
-  )
-  const diasPrecipitacao = useMemo(() => {
-    if (!dadosCNL) return []
-    return [...new Set(dadosCNL.estacoes.flatMap(estacao => estacao.precipitacaoDiaria.map(dia => dia.data)))]
-      .sort()
-      .reverse()
-      .slice(0, 2)
-  }, [dadosCNL])
-  const resumoPrecipitacao = useMemo(
-    () => dadosCNL?.estacoes.map(estacao => `${estacao.nome} ${formatarMmRadar(estacao.acumulados.vinteQuatroHoras)}`).join(' | ') || '',
-    [dadosCNL],
-  )
+  const patrulhamentosDaData = patrulhamentos.filter(plano => plano.dataInicio === dataSelecionada)
 
 
   async function salvarRegistro(tipo: RegistroRadar['tipo'], texto: string, data: string, horaRegistro: string) {
@@ -1294,8 +1118,8 @@ export default function RadarGM() {
        <div className="radar-calendar-card" ref={calendarioRef}>
          <div className="calendar-top"><div><span>CALENDÁRIO DE NOTIFICAÇÕES</span><h2>{mes.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h2></div><div className="month-buttons"><button type="button" aria-label="Mês anterior" onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() - 1, 1))}>‹</button><button type="button" aria-label="Próximo mês" onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() + 1, 1))}>›</button></div></div>
          <div className="weekdays">{['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'].map(d => <span key={d}>{d}</span>)}</div>
-         <div className="calendar-grid">{dias.map(d => { const key = dataLocalISO(d); const count = notificacoes.filter(n => n.data === key && !n.concluido).length; return <button type="button" key={key} aria-label={dataBonita(key)} className={`${d.getMonth() !== mes.getMonth() ? 'other-month ' : ''}${key === dataSelecionada ? 'selected ' : ''}${key === hoje() ? 'today' : ''}`} onClick={() => { setRegistroEmEdicao(null); setDataSelecionada(key); setEditorAberto(true) }}><span>{d.getDate()}</span>{count > 0 && <i>{count}</i>}</button> })}</div>
-         <div className="calendar-legend"><span><i className="legend-red" /> notificações</span></div>
+          <div className="calendar-grid">{dias.map(d => { const key = dataLocalISO(d); const notificacoesCount = notificacoes.filter(n => n.data === key && !n.concluido).length; const patrulhamentosCount = patrulhamentos.filter(p => p.dataInicio === key).length; const count = notificacoesCount + patrulhamentosCount; return <button type="button" key={key} aria-label={dataBonita(key)} className={`${d.getMonth() !== mes.getMonth() ? 'other-month ' : ''}${key === dataSelecionada ? 'selected ' : ''}${key === hoje() ? 'today' : ''}`} onClick={() => { setRegistroEmEdicao(null); setDataSelecionada(key); setEditorAberto(true) }}><span>{d.getDate()}</span>{count > 0 && <i>{count}</i>}{patrulhamentosCount > 0 && <b className="calendar-patrol-dot" aria-label={`${patrulhamentosCount} patrulhamento(s)`} />}</button> })}</div>
+          <div className="calendar-legend"><span><i className="legend-red" /> notificações</span><span><i className="legend-blue" /> patrulhamentos</span></div>
          {editorAberto && <form className="radar-calendar-editor" onSubmit={e => { e.preventDefault(); salvarRegistro('notificacao', textoNotificacao, dataSelecionada, hora) }}>
            <strong>{registroEmEdicao ? 'Editar notificação' : `Notificar em ${dataBonita(dataSelecionada)}`}</strong>
            <div className="radar-date-notifications">
@@ -1323,8 +1147,35 @@ export default function RadarGM() {
                  )}
                </div>
              ))}
-           </div>
-           <textarea value={textoNotificacao} onChange={e => setTextoNotificacao(e.target.value)} placeholder="Escreva a notificação..." rows={3} />
+            </div>
+            <div className="radar-date-patrols">
+              <div className="radar-date-notifications-title">Patrulhamento desta data</div>
+              {patrulhamentosDaData.length === 0 ? (
+                <span className="radar-date-notifications-empty">Nenhum patrulhamento cadastrado.</span>
+              ) : patrulhamentosDaData.slice().sort((a, b) => `${a.horario}${a.nome}`.localeCompare(`${b.horario}${b.nome}`)).map(plano => (
+                <button
+                  type="button"
+                  className="radar-date-patrol"
+                  key={plano.id}
+                  onClick={() => onAbrirPatrulhamento?.(plano.id)}
+                >
+                  <span className="radar-date-patrol-time">{plano.horario || '—'}</span>
+                  <span className="radar-date-patrol-copy">
+                    <strong>{plano.nome}</strong>
+                    <small>{plano.local || 'Local não informado'} · {(plano.agentesDefesaCivil ?? []).length} agente(s) · {plano.itensMapa.filter(item => item.tipo === 'viatura').length} viatura(s)</small>
+                  </span>
+                  <span aria-hidden="true">›</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                className="radar-new-patrol"
+                onClick={() => onNovoPatrulhamento?.(dataSelecionada)}
+              >
+                + Criar planejamento de Patrulhamento nesta data
+              </button>
+            </div>
+            <textarea value={textoNotificacao} onChange={e => setTextoNotificacao(e.target.value)} placeholder="Escreva a notificação..." rows={3} />
            <div className="radar-form-row"><label>⏰ Hora<input type="time" value={hora} onChange={e => setHora(e.target.value)} /></label><label>Nível<select value={prioridade} onChange={e => setPrioridade(e.target.value as Prioridade)}>{Object.entries(prioridadeConfig).map(([key, c]) => <option key={key} value={key}>{c.emoji} {c.label}</option>)}</select></label></div>
            <fieldset className="radar-agentes-fieldset">
              <legend>Agentes envolvidos</legend>
@@ -1531,12 +1382,11 @@ export default function RadarGM() {
                 </article>
               ))}
             </div>
-          )}
           </div>
           <div><h3>⚠️ Ocorrências do dia</h3>{atividades.ocorrencias.length === 0 ? <div className="radar-empty">Nenhuma ocorrência registrada.</div> : atividades.ocorrencias.map(o => <button className="radar-activity" key={o.id} onClick={() => disparar('dc:abrir-ocorrencia', { id: o.id })}><b>{o.agente}</b><span>{o.hora} · {o.natureza || 'Natureza não informada'}</span><small>{o.endereco || 'Endereço não informado'}</small><em>abrir ›</em></button>)}</div>
         </div>
          </section>
-         <RadarMapaTempoReal dadosCNL={dadosCNL} tv={tv} />
+         <RadarMapaTempoReal patrulhamentos={patrulhamentos} dataSelecionada={dataSelecionada} tv={tv} />
        {lembreteParaApagar && (
          <ModalSenha
            titulo={`Apagar lembrete de ${lembreteParaApagar.criadoPor}`}

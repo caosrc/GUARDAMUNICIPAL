@@ -144,6 +144,185 @@
   }
 }
 
+/* Radar GM operacional: o mapa é a área principal e os dados antigos de
+ * clima/hidrologia não fazem mais parte desta tela. */
+.radar-page .radar-weather,
+.radar-page .radar-cnl-inline {
+  display: none !important;
+}
+
+.radar-page .radar-overview {
+  display: block;
+  padding: .8rem clamp(.7rem, 2vw, 1.6rem) 0;
+}
+
+.radar-page .radar-overview .radar-calendar-card {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.radar-page .radar-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(285px, 350px);
+  gap: .9rem;
+  align-items: start;
+}
+
+.radar-page .radar-right-column {
+  display: contents;
+}
+
+.radar-page .radar-live-map-card {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  min-width: 0;
+  margin-top: 0;
+  padding: .8rem;
+  border: 1px solid #245174;
+  border-radius: 16px;
+  background: #102f4d;
+  box-shadow: 0 12px 30px #020d1d55;
+}
+
+.radar-page .radar-activities {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.radar-page .radar-note-card {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.radar-page .radar-live-map {
+  height: min(76vh, 820px);
+  min-height: 520px;
+}
+
+.radar-page .radar-map-hint {
+  margin-left: auto;
+  color: #a8c5dc;
+  font-size: .62rem;
+}
+
+.radar-page .radar-live-map-status-dot-plan { background: #f59e0b; }
+.radar-page .radar-live-map-status-dot-agent { background: #16a34a; }
+.radar-page .radar-live-map-status-dot-vehicle { background: #0ea5e9; }
+
+.radar-page .calendar-legend .legend-blue {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: #38bdf8;
+}
+
+.radar-page .calendar-patrol-dot {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #38bdf8;
+  font-size: 0;
+}
+
+.radar-date-patrols {
+  display: grid;
+  gap: .4rem;
+  margin-top: .7rem;
+  padding-top: .7rem;
+  border-top: 1px solid #2c5879;
+}
+
+.radar-date-patrol {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  width: 100%;
+  padding: .5rem .55rem;
+  border: 1px solid #2c5879;
+  border-radius: 9px;
+  color: #e7f2ff;
+  background: #0b2947;
+  text-align: left;
+  cursor: pointer;
+}
+
+.radar-date-patrol:hover,
+.radar-new-patrol:hover {
+  border-color: #38bdf8;
+  background: #123b5d;
+}
+
+.radar-date-patrol-time {
+  flex: 0 0 42px;
+  color: #7fe3ff;
+  font-size: .78rem;
+  font-weight: 900;
+}
+
+.radar-date-patrol-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: .12rem;
+}
+
+.radar-date-patrol-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .75rem;
+}
+
+.radar-date-patrol-copy small {
+  overflow: hidden;
+  color: #9ebbd0;
+  font-size: .62rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radar-new-patrol {
+  border: 1px dashed #55bce7;
+  border-radius: 9px;
+  padding: .55rem .65rem;
+  color: #d6f2ff;
+  background: #0b2947;
+  font: inherit;
+  font-size: .75rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .radar-page .radar-overview {
+    padding: .55rem .65rem 0;
+  }
+
+  .radar-page .radar-layout {
+    display: flex;
+    flex-direction: column;
+    padding: .7rem .65rem 1rem;
+  }
+
+  .radar-page .radar-live-map-card,
+  .radar-page .radar-activities,
+  .radar-page .radar-note-card {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .radar-page .radar-live-map-card { order: 1; }
+  .radar-page .radar-activities { order: 2; }
+  .radar-page .radar-note-card { order: 3; }
+  .radar-page .radar-live-map { height: 68vh; min-height: 430px; }
+  .radar-page .radar-map-hint { width: 100%; margin-left: 0; }
+}
+
 /* Mantém o cartão novo acima das regras legadas do Radar definidas neste arquivo. */
 .radar-page .radar-google-weather {
   margin: 0 auto .7rem;

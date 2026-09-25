@@ -945,8 +945,9 @@ function MapaDetalhe({
   onViewChange?: (center: [number, number], zoom: number) => void
 }) {
   const [itemSelecionado, setItemSelecionado] = useState<string | null>(null)
-  const [secaoAberta, setSecaoAberta] = useState<'orgaos'|'agentes'|'materiais'|'icones'|null>('icones')
+  const [secaoAberta, setSecaoAberta] = useState<'orgaos'|'agentes'|'viaturas'|'materiais'|'icones'|null>('icones')
   const [camadaMapa, setCamadaMapa] = useState<'padrao' | 'satelite'>('padrao')
+  const [novaViatura, setNovaViatura] = useState('')
   const [gpsLocalAtivo, setGpsLocalAtivo] = useState(false)
   const [posGpsLocal, setPosGpsLocal] = useState<{ lat: number; lng: number; precisao: number } | null>(null)
   const [gpsFlyKey, setGpsFlyKey] = useState(0)
@@ -1107,6 +1108,12 @@ function MapaDetalhe({
       setItemSelecionado(null)
       return
     }
+    if (itemSelecionado.startsWith('viatura:')) {
+      const identificacao = itemSelecionado.slice(8)
+      onAdicionarItem({ id: gerarId(), tipo: 'viatura', emoji: '🚓', lat, lng, obs: identificacao })
+      setItemSelecionado(null)
+      return
+    }
   }
 
   const labelSelecionado = (() => {
@@ -1114,6 +1121,7 @@ function MapaDetalhe({
     if (itemSelecionado.startsWith('orgao:')) return itemSelecionado.slice(6)
     if (itemSelecionado.startsWith('mat:')) return itemSelecionado.slice(4)
     if (itemSelecionado.startsWith('agente:')) return itemSelecionado.slice(7)
+    if (itemSelecionado.startsWith('viatura:')) return itemSelecionado.slice(8)
     return ITENS_POSICIONAR.find(i => i.tipo === itemSelecionado)?.label ?? ''
   })()
 
@@ -1210,6 +1218,62 @@ function MapaDetalhe({
                     })}
                   </div>
               }
+            </div>
+          )}
+        </div>
+
+        {/* ── Seção: Viaturas do patrulhamento (recolhível) ── */}
+        <div style={{ borderBottom: '1px solid #e5e7eb' }}>
+          <button
+            onClick={() => setSecaoAberta(secaoAberta === 'viaturas' ? null : 'viaturas')}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.75rem', background: secaoAberta === 'viaturas' ? 'linear-gradient(90deg,#075985,#0284c7)' : '#f0f9ff', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+          >
+            <span style={{ fontSize: '0.88rem' }}>🚓</span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: secaoAberta === 'viaturas' ? 'white' : '#075985', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Viaturas do patrulhamento</span>
+            <span style={{ marginLeft: 'auto', background: secaoAberta === 'viaturas' ? 'rgba(255,255,255,0.22)' : '#bae6fd', color: secaoAberta === 'viaturas' ? 'white' : '#075985', borderRadius: 10, fontSize: '0.62rem', fontWeight: 700, padding: '0.05rem 0.4rem' }}>
+              {plano.itensMapa.filter(item => item.tipo === 'viatura').length}
+            </span>
+            <span style={{ fontSize: '0.65rem', color: secaoAberta === 'viaturas' ? 'rgba(255,255,255,0.8)' : '#6b7280', fontWeight: 700, marginLeft: 2 }}>{secaoAberta === 'viaturas' ? '▲' : '▼'}</span>
+          </button>
+          {secaoAberta === 'viaturas' && (
+            <div style={{ padding: '0.45rem 0.7rem 0.55rem' }}>
+              <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                <input
+                  value={novaViatura}
+                  onChange={e => setNovaViatura(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && novaViatura.trim()) {
+                      e.preventDefault()
+                      setItemSelecionado(`viatura:${novaViatura.trim()}`)
+                      setNovaViatura('')
+                    }
+                  }}
+                  placeholder="Identificação ou placa (ex.: GM-01 / ABC-1234)"
+                  style={{ flex: 1, minWidth: 0, padding: '0.38rem 0.55rem', border: '1.5px solid #bae6fd', borderRadius: 8, fontSize: '0.75rem', outline: 'none' }}
+                />
+                <button
+                  type="button"
+                  disabled={!novaViatura.trim()}
+                  onClick={() => { setItemSelecionado(`viatura:${novaViatura.trim()}`); setNovaViatura('') }}
+                  style={{ background: '#0284c7', color: 'white', border: 'none', borderRadius: 8, padding: '0.38rem 0.65rem', fontWeight: 800, fontSize: '0.75rem', cursor: novaViatura.trim() ? 'pointer' : 'not-allowed', opacity: novaViatura.trim() ? 1 : .5 }}
+                >Selecionar</button>
+              </div>
+              <div style={{ marginTop: '0.4rem', fontSize: '0.68rem', color: '#64748b' }}>
+                Depois de selecionar, toque no mapa para salvar a posição. A mesma viatura pode aparecer em vários planejamentos.
+              </div>
+              {plano.itensMapa.filter(item => item.tipo === 'viatura' && item.obs).length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.28rem', marginTop: '0.45rem' }}>
+                  {[...new Set(plano.itensMapa.filter(item => item.tipo === 'viatura' && item.obs).map(item => item.obs!))].map(viatura => {
+                    const key = `viatura:${viatura}`
+                    const ativo = itemSelecionado === key
+                    return (
+                      <button key={viatura} type="button" onClick={() => setItemSelecionado(ativo ? null : key)} style={{ background: ativo ? '#0284c7' : '#e0f2fe', color: ativo ? 'white' : '#075985', border: `1px solid ${ativo ? '#0284c7' : '#bae6fd'}`, borderRadius: 20, padding: '0.22rem 0.55rem', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}>
+                        🚓 {viatura}{ativo && ' · 📍'}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -2024,11 +2088,13 @@ ${fotosPaginasHtml}
 function FormularioPlano({
   tipo,
   planoEditando,
+  dataInicial,
   onSalvar,
   onFechar,
 }: {
   tipo: TipoPlano
   planoEditando?: Plano | null
+  dataInicial?: string
   onSalvar: (plano: Plano) => void
   onFechar: () => void
 }) {
@@ -2038,8 +2104,8 @@ function FormularioPlano({
   const [nome, setNome] = useState(planoEditando?.nome ?? '')
   const [descricao, setDescricao] = useState(planoEditando?.descricao ?? '')
   const [local, setLocal] = useState(planoEditando?.local ?? '')
-  const [dataInicio, setDataInicio] = useState(planoEditando?.dataInicio ?? '')
-  const [dataFim, setDataFim] = useState(planoEditando?.dataFim ?? '')
+  const [dataInicio, setDataInicio] = useState(planoEditando?.dataInicio ?? dataInicial ?? '')
+  const [dataFim, setDataFim] = useState(planoEditando?.dataFim ?? dataInicial ?? '')
   const [horario, setHorario] = useState(planoEditando?.horario ?? '')
   const [horarioFim, setHorarioFim] = useState(planoEditando?.horarioFim ?? '')
   const [publicoEstimado, setPublicoEstimado] = useState(planoEditando?.publicoEstimado ?? '')
@@ -4300,6 +4366,8 @@ export default function Planejamento() {
   const [subAba, setSubAba] = useState<SubAbaPlanejamento>('radar')
   const [planos, setPlanos] = useState<Plano[]>(() => carregarPlanos())
   const [criando, setCriando] = useState(false)
+  const [tipoCriacao, setTipoCriacao] = useState<TipoPlano>('simulado')
+  const [dataInicialCriacao, setDataInicialCriacao] = useState('')
   const [aberto, setAberto] = useState<Plano | null>(null)
   const planosRef = useRef<Plano[]>([])
 
@@ -4451,6 +4519,8 @@ export default function Planejamento() {
       return [plano, ...prev]
     })
     setCriando(false)
+    setTipoCriacao('simulado')
+    setDataInicialCriacao('')
     setAberto(plano)
     sincServidor(plano)
   }, [])
@@ -4468,6 +4538,28 @@ export default function Planejamento() {
     setAberto(null)
     deletarServidor(id)
   }, [])
+
+  function iniciarNovoPlano(tipo: TipoPlano, data = '') {
+    setTipoCriacao(tipo)
+    setDataInicialCriacao(data)
+    setCriando(true)
+  }
+
+  const patrulhamentosRadar = planos
+    .filter(plano => plano.tipo === 'simulado')
+    .map(plano => ({
+      id: plano.id,
+      nome: plano.nome,
+      dataInicio: plano.dataInicio,
+      horario: plano.horario,
+      horarioFim: plano.horarioFim,
+      local: plano.local,
+      lat: plano.lat,
+      lng: plano.lng,
+      status: plano.status,
+      agentesDefesaCivil: plano.agentesDefesaCivil,
+      itensMapa: plano.itensMapa,
+    }))
 
   const totalPorTipo = (t: TipoPlano) => planos.filter(p => p.tipo === t).length
 
@@ -4512,7 +4604,14 @@ export default function Planejamento() {
 
       {subAba === 'radar' ? (
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-           <RadarGM />
+           <RadarGM
+             patrulhamentos={patrulhamentosRadar}
+             onNovoPatrulhamento={data => iniciarNovoPlano('simulado', data)}
+             onAbrirPatrulhamento={id => {
+               const plano = planos.find(item => item.id === id)
+               if (plano) setAberto(plano)
+             }}
+           />
         </div>
       ) : subAba === 'emergencia' ? (
         <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -4528,7 +4627,7 @@ export default function Planejamento() {
             </span>
             <button
               style={{ marginLeft: 'auto', background: '#1a4b8c', color: 'white', border: 'none', borderRadius: 20, padding: '0.28rem 0.85rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
-              onClick={() => setCriando(true)}
+               onClick={() => iniciarNovoPlano(subAba)}
             >
               + Novo
             </button>
@@ -4538,18 +4637,19 @@ export default function Planejamento() {
             <ListaPlanos
               tipo={subAba}
               planos={planos}
-              onNovo={() => setCriando(true)}
+               onNovo={() => iniciarNovoPlano(subAba)}
               onAbrir={p => setAberto(p)}
             />
           </div>
         </>
       )}
 
-      {subAba !== 'emergencia' && criando && (
+      {criando && (
         <FormularioPlano
-          tipo={subAba}
+          tipo={tipoCriacao}
+          dataInicial={dataInicialCriacao}
           onSalvar={salvarPlano}
-          onFechar={() => setCriando(false)}
+          onFechar={() => { setCriando(false); setDataInicialCriacao('') }}
         />
       )}
 
