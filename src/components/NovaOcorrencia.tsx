@@ -34,6 +34,168 @@ import type {
 
 const CONSELHEIRO_LAFAIETE_CENTER: [number, number] = [-20.6604, -43.7863]
 const RASCUNHO_KEY = 'dc_rascunho_nova_oc'
+const ORIGENS_ATENDIMENTO = [
+  '153',
+  'Telefone',
+  'Aplicativo',
+  'Rádio',
+  'Patrulhamento',
+  'Solicitação de servidor',
+  'Solicitação de outro órgão',
+  'Flagrante pela equipe',
+  'Central',
+  'Outros',
+]
+
+type CampoModulo = {
+  id: string
+  label: string
+  tipo?: 'text' | 'number' | 'textarea' | 'select' | 'checkboxes'
+  placeholder?: string
+  opcoes?: string[]
+}
+
+const NATUREZAS_POR_MODULO: Partial<Record<CategoriaOcorrencia, string[]>> = {
+  seguranca: ['Furto', 'Tentativa de furto', 'Roubo', 'Ameaça', 'Agressão', 'Violência', 'Suspeita de crime'],
+  patrimonio: ['Dano ao patrimônio público', 'Vandalismo', 'Invasão de próprio público', 'Furto', 'Incêndio em Área Urbana'],
+  transito: ['Acidente de Trânsito', 'Infração de Trânsito', 'Veículo abandonado', 'Obstrução de via', 'Problema de sinalização', 'Congestionamento', 'Apoio ao trânsito'],
+  perturbacao: ['Perturbação do sossego', 'Ameaça', 'Agressão'],
+  pessoas: ['Pessoa desaparecida', 'Pessoa em situação de vulnerabilidade', 'Atendimento social'],
+  escolas: ['Ocorrência escolar', 'Ameaça', 'Agressão', 'Vandalismo', 'Furto', 'Acesso indevido', 'Apoio preventivo'],
+  'espaco-publico': ['Dano ao patrimônio público', 'Invasão de próprio público', 'Vandalismo', 'Apoio preventivo'],
+  eventos: ['Apoio a evento', 'Apoio preventivo', 'Apoio ao trânsito'],
+  'meio-ambiente': ['Dano ambiental', 'Descarte irregular', 'Queimada', 'Fiscalização municipal'],
+  'defesa-civil': ['Alagamento', 'Inundação', 'Queda de árvore', 'Risco estrutural', 'Deslizamento', 'Incêndio em Área Urbana', 'Interdição de via'],
+  animais: ['Animal solto', 'Animal ferido', 'Animal em risco'],
+  'atendimento-social': ['Atendimento social', 'Pessoa em situação de vulnerabilidade'],
+  fiscalizacao: ['Fiscalização municipal', 'Comércio irregular', 'Ocupação de espaço público'],
+  apoio: ['Apoio a órgão', 'Apoio a evento', 'Apoio preventivo'],
+  outros: [],
+}
+
+const CAMPOS_POR_MODULO: Record<CategoriaOcorrencia, CampoModulo[]> = {
+  seguranca: [
+    { id: 'envolvimento', label: 'Tipo de envolvimento', tipo: 'select', opcoes: ['Solicitante', 'Vítima', 'Autor', 'Suspeito', 'Testemunha', 'Envolvido', 'Desconhecido'] },
+    { id: 'quantidadeEnvolvidos', label: 'Quantidade de envolvidos', tipo: 'number' },
+    { id: 'agressorIdentificado', label: 'Agressor/suspeito identificado?', tipo: 'select', opcoes: ['Sim', 'Não', 'Parcialmente'] },
+    { id: 'houveLesao', label: 'Houve lesão?', tipo: 'select', opcoes: ['Sim', 'Não', 'Não informado'] },
+    { id: 'houveArma', label: 'Houve uso de arma?', tipo: 'select', opcoes: ['Sim', 'Não', 'Não informado'] },
+    { id: 'atendimentoMedico', label: 'Atendimento médico necessário?', tipo: 'select', opcoes: ['Sim', 'Não', 'Não informado'] },
+    { id: 'medidasAdotadas', label: 'Medidas adotadas', tipo: 'checkboxes', opcoes: ['Orientação', 'Advertência', 'Isolamento', 'Acionamento PM', 'Acionamento SAMU', 'Encaminhamento'] },
+    { id: 'encaminhamento', label: 'Encaminhamento', placeholder: 'PM, Polícia Civil, Delegacia ou outro órgão' },
+  ],
+  patrimonio: [
+    { id: 'tipoPatrimonio', label: 'Tipo de patrimônio', tipo: 'select', opcoes: ['Escola', 'Praça', 'Parque', 'Unidade de saúde', 'Prefeitura', 'Prédio público', 'Terminal', 'Veículo oficial', 'Monumento', 'Equipamento urbano', 'Iluminação', 'Placa', 'Abrigo de ônibus', 'Outro'] },
+    { id: 'tipoDano', label: 'Tipo de dano', tipo: 'select', opcoes: ['Pichação', 'Quebra', 'Furto', 'Tentativa de furto', 'Depredação', 'Incêndio', 'Arrombamento', 'Vandalismo', 'Dano estrutural', 'Outro'] },
+    { id: 'bemAtingido', label: 'Bem ou equipamento atingido', placeholder: 'Identifique o bem público' },
+    { id: 'responsavelPatrimonio', label: 'Responsável pelo patrimônio', placeholder: 'Nome e telefone, se disponível' },
+    { id: 'estimativaDano', label: 'Estimativa do dano', placeholder: 'Valor aproximado ou descrição da extensão' },
+    { id: 'possivelAutor', label: 'Possível autor ou testemunhas', tipo: 'textarea' },
+    { id: 'cameras', label: 'Há câmeras próximas?', tipo: 'select', opcoes: ['Sim', 'Não', 'Não verificado'] },
+    { id: 'providenciasPatrimonio', label: 'Providências', tipo: 'checkboxes', opcoes: ['Isolamento', 'Manutenção acionada', 'PM acionada', 'Fiscalização acionada', 'Registro fotográfico'] },
+  ],
+  transito: [
+    { id: 'tipoAcidente', label: 'Tipo de atendimento', tipo: 'select', opcoes: ['Acidente sem vítima', 'Acidente com vítima', 'Veículo abandonado', 'Estacionamento irregular', 'Obstrução da via', 'Sinalização', 'Congestionamento', 'Fiscalização'] },
+    { id: 'veiculo1', label: 'Veículo 1', placeholder: 'Placa · marca · modelo · cor · tipo' },
+    { id: 'veiculo2', label: 'Veículo 2', placeholder: 'Placa · marca · modelo · cor · tipo' },
+    { id: 'condutores', label: 'Condutores e proprietários', tipo: 'textarea' },
+    { id: 'condicoesVia', label: 'Condições da via', placeholder: 'Pavimento, sinalização, iluminação e clima' },
+    { id: 'vitimas', label: 'Vítimas, feridos ou óbitos', tipo: 'textarea' },
+    { id: 'apoiosTransito', label: 'Apoios acionados', tipo: 'checkboxes', opcoes: ['SAMU', 'Bombeiros', 'PM', 'Perícia', 'Trânsito', 'Concessionária'] },
+    { id: 'danosMateriais', label: 'Danos materiais e croqui', tipo: 'textarea' },
+  ],
+  perturbacao: [
+    { id: 'tipoPerturbacao', label: 'Tipo de perturbação', tipo: 'select', opcoes: ['Som alto', 'Festa', 'Bar', 'Residência', 'Evento', 'Veículo', 'Estabelecimento', 'Discussão', 'Outro'] },
+    { id: 'origemRuido', label: 'Origem do ruído ou conflito', placeholder: 'Descreva a origem' },
+    { id: 'responsavelPerturbacao', label: 'Responsável ou envolvido', placeholder: 'Nome do responsável' },
+    { id: 'orientacao', label: 'Orientação realizada', tipo: 'textarea' },
+    { id: 'providenciasPerturbacao', label: 'Providências', tipo: 'checkboxes', opcoes: ['Advertência', 'Fiscalização acionada', 'PM acionada', 'Encaminhamento'] },
+    { id: 'reincidencia', label: 'Houve reincidência?', tipo: 'select', opcoes: ['Sim', 'Não', 'Não verificado'] },
+  ],
+  pessoas: [
+    { id: 'tipoPessoa', label: 'Situação da pessoa', tipo: 'select', opcoes: ['Desaparecida', 'Vulnerabilidade', 'Desorientada', 'Solicitante', 'Vítima', 'Outro'] },
+    { id: 'nomeCompleto', label: 'Nome completo ou nome social', placeholder: 'Nome da pessoa' },
+    { id: 'documento', label: 'Documento apresentado', placeholder: 'RG, CPF ou outro documento' },
+    { id: 'telefonePessoa', label: 'Telefone ou contato', tipo: 'text' },
+    { id: 'idadePessoa', label: 'Idade ou faixa etária', placeholder: 'Ex.: aproximadamente 65 anos' },
+    { id: 'responsavelLegal', label: 'Responsável ou familiar', placeholder: 'Nome e contato' },
+    { id: 'caracteristicasPessoa', label: 'Características e última localização', tipo: 'textarea' },
+    { id: 'encaminhamentoPessoa', label: 'Encaminhamento', tipo: 'checkboxes', opcoes: ['Família', 'Assistência Social', 'Saúde', 'Conselho Tutelar', 'Delegacia', 'Abrigo'] },
+  ],
+  escolas: [
+    { id: 'escola', label: 'Escola ou unidade', placeholder: 'Nome da escola' },
+    { id: 'turno', label: 'Turno', tipo: 'select', opcoes: ['Manhã', 'Tarde', 'Noite', 'Integral'] },
+    { id: 'diretorResponsavel', label: 'Diretor ou responsável', placeholder: 'Nome e contato' },
+    { id: 'alunoEnvolvido', label: 'Aluno ou pessoa envolvida', placeholder: 'Nome ou identificação' },
+    { id: 'faixaEtaria', label: 'Idade ou faixa etária' },
+    { id: 'servidorEnvolvido', label: 'Professor ou servidor envolvido' },
+    { id: 'medidasEscola', label: 'Medidas adotadas', tipo: 'checkboxes', opcoes: ['Responsável legal acionado', 'Conselho Tutelar', 'PM', 'SAMU', 'Bombeiros', 'Polícia Civil', 'Orientação'] },
+    { id: 'relatoEscola', label: 'Relato objetivo', tipo: 'textarea' },
+  ],
+  'espaco-publico': [
+    { id: 'tipoEspaco', label: 'Tipo de espaço', tipo: 'select', opcoes: ['Praça', 'Parque', 'Terminal', 'Prédio público', 'Equipamento urbano', 'Outro'] },
+    { id: 'bemLocal', label: 'Bem ou área afetada', placeholder: 'Identifique o local' },
+    { id: 'responsavelLocal', label: 'Responsável pelo local' },
+    { id: 'riscoAcesso', label: 'Risco ou controle de acesso', tipo: 'textarea' },
+    { id: 'providenciasEspaco', label: 'Providências', tipo: 'checkboxes', opcoes: ['Orientação', 'Isolamento', 'Manutenção', 'Fiscalização', 'Apoio preventivo'] },
+  ],
+  eventos: [
+    { id: 'nomeEvento', label: 'Nome do evento', placeholder: 'Nome oficial do evento' },
+    { id: 'organizador', label: 'Organizador', placeholder: 'Nome e telefone' },
+    { id: 'dataHorarioEvento', label: 'Data e horário' },
+    { id: 'publicoEstimado', label: 'Público estimado', tipo: 'number' },
+    { id: 'tipoEvento', label: 'Tipo de evento', placeholder: 'Cultural, esportivo, religioso...' },
+    { id: 'planejamentoEvento', label: 'Estrutura operacional', tipo: 'textarea', placeholder: 'Pontos de acesso, rotas de emergência, agentes e viaturas' },
+    { id: 'apoiosEvento', label: 'Apoios previstos', tipo: 'checkboxes', opcoes: ['Trânsito', 'Bombeiros', 'SAMU', 'PM', 'Defesa Civil'] },
+    { id: 'ocorrenciaEvento', label: 'Ocorrência durante o evento', tipo: 'textarea' },
+  ],
+  'meio-ambiente': [
+    { id: 'tipoAmbiental', label: 'Tipo de ocorrência ambiental', tipo: 'select', opcoes: ['Descarte irregular', 'Queimada', 'Dano ambiental', 'Poluição', 'Corte de árvore', 'Outro'] },
+    { id: 'materialArea', label: 'Material ou área afetada', tipo: 'textarea' },
+    { id: 'responsavelAmbiental', label: 'Responsável ou veículo envolvido' },
+    { id: 'extensaoDano', label: 'Extensão aparente do dano' },
+    { id: 'orgaoAmbiental', label: 'Órgão acionado', tipo: 'checkboxes', opcoes: ['Fiscalização', 'Meio Ambiente', 'Bombeiros', 'Defesa Civil', 'PM'] },
+  ],
+  'defesa-civil': [
+    { id: 'tipoRisco', label: 'Tipo de risco', tipo: 'select', opcoes: ['Alagamento', 'Enchente', 'Deslizamento', 'Queda de árvore', 'Queda de muro', 'Risco estrutural', 'Desabamento', 'Interdição de via', 'Poste ou fiação', 'Incêndio', 'Pessoa em risco', 'Outro'] },
+    { id: 'gravidadeAparente', label: 'Gravidade aparente', tipo: 'select', opcoes: ['Baixa', 'Média', 'Alta', 'Emergencial'] },
+    { id: 'pessoasRisco', label: 'Pessoas em risco', tipo: 'number' },
+    { id: 'imoveisAfetados', label: 'Imóveis ou vias afetadas', tipo: 'textarea' },
+    { id: 'acoesDefesaCivil', label: 'Ações necessárias', tipo: 'checkboxes', opcoes: ['Isolamento', 'Evacuação', 'Defesa Civil', 'Bombeiros', 'Concessionária', 'Obras'] },
+  ],
+  animais: [
+    { id: 'tipoAnimal', label: 'Animal ou situação', tipo: 'select', opcoes: ['Cão', 'Gato', 'Animal silvestre', 'Animal de grande porte', 'Animal ferido', 'Outro'] },
+    { id: 'quantidadeAnimais', label: 'Quantidade', tipo: 'number' },
+    { id: 'riscoAnimal', label: 'Risco à população', tipo: 'select', opcoes: ['Sim', 'Não', 'Não avaliado'] },
+    { id: 'responsavelAnimal', label: 'Tutor ou responsável' },
+    { id: 'destinoAnimal', label: 'Destino ou apoio', tipo: 'checkboxes', opcoes: ['Zoonoses', 'Abrigo', 'Bombeiros', 'Defesa Civil', 'Orientação ao tutor'] },
+    { id: 'condicaoAnimal', label: 'Condição observada', tipo: 'textarea' },
+  ],
+  'atendimento-social': [
+    { id: 'situacaoSocial', label: 'Situação identificada', tipo: 'select', opcoes: ['Pessoa em situação de rua', 'Vulnerabilidade', 'Desorientação', 'Emergência social', 'Outro'] },
+    { id: 'quantidadePessoas', label: 'Quantidade de pessoas', tipo: 'number' },
+    { id: 'necessidadesSociais', label: 'Necessidades observadas', tipo: 'textarea' },
+    { id: 'redeAcionada', label: 'Rede acionada', tipo: 'checkboxes', opcoes: ['Assistência Social', 'Saúde', 'SAMU', 'Abrigo', 'Família', 'Conselho Tutelar'] },
+    { id: 'resultadoSocial', label: 'Resultado ou encaminhamento', tipo: 'textarea' },
+  ],
+  fiscalizacao: [
+    { id: 'atividadeFiscalizada', label: 'Estabelecimento ou atividade', placeholder: 'Nome e atividade' },
+    { id: 'responsavelFiscalizacao', label: 'Responsável ou proprietário' },
+    { id: 'licencaDocumento', label: 'Licença ou documento apresentado' },
+    { id: 'irregularidade', label: 'Irregularidade constatada', tipo: 'textarea' },
+    { id: 'medidasFiscalizacao', label: 'Medidas adotadas', tipo: 'checkboxes', opcoes: ['Orientação', 'Advertência', 'Notificação', 'Interdição', 'Apoio da PM', 'Encaminhamento'] },
+  ],
+  apoio: [
+    { id: 'orgaoSolicitante', label: 'Órgão solicitante', tipo: 'select', opcoes: ['PM', 'Bombeiros', 'SAMU', 'Defesa Civil', 'Conselho Tutelar', 'Trânsito', 'Fiscalização', 'Saúde', 'Obras', 'Outro'] },
+    { id: 'motivoApoio', label: 'Motivo do apoio', tipo: 'textarea' },
+    { id: 'contatoProtocolo', label: 'Contato ou protocolo' },
+    { id: 'formaApoio', label: 'Forma de acionamento', tipo: 'select', opcoes: ['Rádio', 'Telefone', 'Presencial', 'Sistema integrado', 'Viatura', 'Outro'] },
+    { id: 'resultadoApoio', label: 'Resultado', tipo: 'select', opcoes: ['Atendimento assumido pelo órgão', 'Aguardando órgão', 'Encaminhado', 'Resolvido pela Guarda', 'Orientação', 'Sem constatação', 'Cancelado'] },
+  ],
+  outros: [
+    { id: 'descricaoAtendimento', label: 'Descrição do atendimento', tipo: 'textarea', placeholder: 'Descreva objetivamente o que foi solicitado e observado' },
+  ],
+}
 
 function MapPickerClick({ onPick }: { onPick: (lat: number, lng: number) => void }) {
   useMapEvents({ click(e) { onPick(e.latlng.lat, e.latlng.lng) } })
@@ -54,27 +216,33 @@ export default function NovaOcorrencia({ onSalvo, onVoltar, isOnline, orgao = 'd
   const hoje = new Date().toISOString().split('T')[0]
   const ehCurral = orgao === 'curral'
   const ehProcon = orgao === 'procon'
+  const modoGuarda = !ehCurral && !ehProcon
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState<CategoriaOcorrencia>(categoriaInicial ?? 'outros')
+  const categoriaAtiva = CATEGORIAS_GUARDA.find((item) => item.id === categoriaSelecionada) ?? CATEGORIAS_GUARDA[CATEGORIAS_GUARDA.length - 1]
   const naturezasDisponiveis = ehCurral
     ? ['Apreensão de animal']
     : ehProcon
       ? ['Fiscalização']
-      : NATUREZAS
-  const naturezaPadrao = ehCurral ? 'Apreensão de animal' : ehProcon ? 'Fiscalização' : ''
+      : NATUREZAS_POR_MODULO[categoriaSelecionada] ?? NATUREZAS
+  const naturezaPadrao = ehCurral ? 'Apreensão de animal' : ehProcon ? 'Fiscalização' : categoriaAtiva.natureza
   const [feriadosCustom, setFeriadosCustom] = useState<string[]>([])
   useEffect(() => {
     carregarFeriadosCustom().then(setFeriadosCustom).catch(() => {})
   }, [])
 
-  const [tipo, setTipo] = useState(ehCurral ? 'Diligência' : ehProcon ? 'Fiscalização' : '')
+  const [tipo, setTipo] = useState(ehCurral ? 'Diligência' : ehProcon ? 'Fiscalização' : categoriaAtiva.tipo)
   const [tipoOutro, setTipoOutro] = useState('')
-  const [natureza, setNatureza] = useState(naturezaPadrao)
+  const [natureza, setNatureza] = useState(modoGuarda && categoriaAtiva.id === 'outros' ? '' : naturezaPadrao)
   const [subnatureza, setSubnatureza] = useState('')
   const [chuva, setChuva] = useState('')
   const [metragemLona, setMetragemLona] = useState('')
   const [nivelRisco, setNivelRisco] = useState<NivelRisco>('baixo')
   const [statusOc, setStatusOc] = useState<StatusOc>('ativo')
   const [dataOcorrencia, setDataOcorrencia] = useState(hoje)
+  const [origem, setOrigem] = useState('Rádio')
   const [horaInicio, setHoraInicio] = useState('')
+  const [horaDespacho, setHoraDespacho] = useState('')
+  const [horaChegada, setHoraChegada] = useState('')
   const [horaFim, setHoraFim] = useState('')
   const [fotos, setFotos] = useState<string[]>([])
   const [fotoAmpliada, setFotoAmpliada] = useState<number | null>(null)
@@ -89,6 +257,7 @@ export default function NovaOcorrencia({ onSalvo, onVoltar, isOnline, orgao = 'd
   const [situacao, setSituacao] = useState('')
   const [recomendacao, setRecomendacao] = useState('')
   const [conclusao, setConclusao] = useState('')
+  const [detalhesModulo, setDetalhesModulo] = useState<Record<string, string>>({})
   const [agentes, setAgentes] = useState<string[]>(() => {
     const agenteLogado = getAgenteLogado()
     return agenteLogado ? [agenteLogado] : []
@@ -132,8 +301,12 @@ export default function NovaOcorrencia({ onSalvo, onVoltar, isOnline, orgao = 'd
       if (d.metragemLona != null) setMetragemLona(String(d.metragemLona))
       if (d.nivelRisco) setNivelRisco(d.nivelRisco)
       if (d.statusOc) setStatusOc(d.statusOc)
-      if (d.dataOcorrencia) setDataOcorrencia(d.dataOcorrencia)
+       if (d.categoriaSelecionada && CATEGORIAS_GUARDA.some((item) => item.id === d.categoriaSelecionada)) setCategoriaSelecionada(d.categoriaSelecionada)
+       if (d.dataOcorrencia) setDataOcorrencia(d.dataOcorrencia)
+       if (d.origem) setOrigem(d.origem)
       if (d.horaInicio) setHoraInicio(d.horaInicio)
+       if (d.horaDespacho) setHoraDespacho(d.horaDespacho)
+       if (d.horaChegada) setHoraChegada(d.horaChegada)
       if (d.horaFim) setHoraFim(d.horaFim)
       if (d.rua) setRua(d.rua)
       if (d.numero) setNumero(d.numero)
@@ -145,6 +318,7 @@ export default function NovaOcorrencia({ onSalvo, onVoltar, isOnline, orgao = 'd
       if (d.situacao) setSituacao(d.situacao)
       if (d.recomendacao) setRecomendacao(d.recomendacao)
       if (d.conclusao) setConclusao(d.conclusao)
+      if (d.detalhesModulo && typeof d.detalhesModulo === 'object') setDetalhesModulo(d.detalhesModulo)
       if (Array.isArray(d.agentes) && d.agentes.length > 0) setAgentes(d.agentes)
       if (Array.isArray(d.fotos) && d.fotos.length > 0) setFotos(d.fotos)
       if (Array.isArray(d.focosIncendio) && d.focosIncendio.length > 0) setFocosIncendio(d.focosIncendio)
@@ -159,22 +333,23 @@ export default function NovaOcorrencia({ onSalvo, onVoltar, isOnline, orgao = 'd
   }, [])
 
   useEffect(() => {
-    if (!categoriaInicial || ehCurral || ehProcon) return
+    if (!modoGuarda || !categoriaInicial) return
     const categoria = CATEGORIAS_GUARDA.find((item) => item.id === categoriaInicial)
     if (!categoria) return
+    setCategoriaSelecionada(categoria.id)
     setTipo(categoria.tipo)
     setNatureza(categoria.natureza)
     setTipoOutro('')
-  }, [categoriaInicial, ehCurral, ehProcon])
+  }, [categoriaInicial, modoGuarda])
 
   // ── Salvar rascunho automaticamente enquanto o agente preenche ──────────────
   useEffect(() => {
     const timer = setTimeout(() => {
       const draft = {
         tipo, tipoOutro, natureza, subnatureza, chuva, metragemLona, nivelRisco, statusOc,
-        dataOcorrencia, horaInicio, horaFim,
+        categoriaSelecionada, dataOcorrencia, origem, horaInicio, horaDespacho, horaChegada, horaFim,
         rua, numero, bairro, lat, lng,
-        proprietario, telefoneProprietario, situacao, recomendacao, conclusao,
+        proprietario, telefoneProprietario, situacao, recomendacao, conclusao, detalhesModulo,
         agentes, focosIncendio, fotos, poligonoArea,
         curralCampos, proconCampos, orgao,
       }
@@ -189,20 +364,22 @@ export default function NovaOcorrencia({ onSalvo, onVoltar, isOnline, orgao = 'd
     }, 800)
     return () => clearTimeout(timer)
   }, [tipo, tipoOutro, natureza, subnatureza, chuva, metragemLona, nivelRisco, statusOc,
-      dataOcorrencia, horaInicio, horaFim,
+      categoriaSelecionada, dataOcorrencia, origem, horaInicio, horaDespacho, horaChegada, horaFim,
       rua, numero, bairro, lat, lng,
-      proprietario, telefoneProprietario, situacao, recomendacao, conclusao,
+      proprietario, telefoneProprietario, situacao, recomendacao, conclusao, detalhesModulo,
       agentes, focosIncendio, fotos, poligonoArea, curralCampos, proconCampos, orgao])
 
   const descartarRascunho = useCallback(() => {
     localStorage.removeItem(RASCUNHO_KEY)
-    setTipo(ehCurral ? 'Diligência' : ehProcon ? 'Fiscalização' : '')
+    const categoria = CATEGORIAS_GUARDA.find((item) => item.id === (categoriaInicial ?? 'outros')) ?? CATEGORIAS_GUARDA[CATEGORIAS_GUARDA.length - 1]
+    setCategoriaSelecionada(categoria.id)
+    setTipo(ehCurral ? 'Diligência' : ehProcon ? 'Fiscalização' : categoria.tipo)
     setTipoOutro(''); setNatureza(naturezaPadrao); setSubnatureza(''); setChuva(''); setMetragemLona('')
     setNivelRisco('baixo'); setStatusOc('ativo')
-    setDataOcorrencia(hoje); setHoraInicio(''); setHoraFim('')
+    setDataOcorrencia(hoje); setOrigem('Rádio'); setHoraInicio(''); setHoraDespacho(''); setHoraChegada(''); setHoraFim('')
     setRua(''); setNumero(''); setBairro('')
     setLat(null); setLng(null)
-    setProprietario(''); setTelefoneProprietario(''); setSituacao(''); setRecomendacao(''); setConclusao('')
+    setProprietario(''); setTelefoneProprietario(''); setSituacao(''); setRecomendacao(''); setConclusao(''); setDetalhesModulo({})
     const agenteLogado = getAgenteLogado()
     setAgentes(agenteLogado ? [agenteLogado] : [])
     setFotos([])
@@ -212,7 +389,7 @@ export default function NovaOcorrencia({ onSalvo, onVoltar, isOnline, orgao = 'd
     setProconCampos(novaProconOcorrencia())
     setRascunhoRestaurado(false)
     setErro('')
-  }, [hoje, naturezaPadrao, ehCurral, ehProcon])
+  }, [hoje, naturezaPadrao, ehCurral, ehProcon, categoriaInicial])
 
   useEffect(() => {
     function fechar(e: MouseEvent) {
