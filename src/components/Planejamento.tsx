@@ -315,7 +315,7 @@ const TIPOS_CONFIG: Record<TipoPlano, {
     ],
   },
   simulado: {
-    label: 'Simulados',
+    label: 'Patrulhamento',
     emoji: '🛡️',
     cor: '#7c3aed',
     descricao: 'Treinamento de equipes, comunicação por rádio e resposta coordenada.',
@@ -4481,7 +4481,7 @@ export default function Planejamento() {
           <img className="radar-tab-icon" src="/icon-192.png" alt="" />
           Radar GM
         </button>
-        {(['evento', 'operacao', 'simulado', 'emergencia'] as TipoPlano[]).map(t => {
+        {(['simulado', 'evento', 'operacao', 'emergencia'] as TipoPlano[]).map(t => {
           const c = TIPOS_CONFIG[t]
           const total = t !== 'emergencia' ? totalPorTipo(t) : 0
           return (
