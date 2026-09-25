@@ -6289,3 +6289,22 @@ html:-webkit-full-screen {
     min-height: 0;
   }
 }
+
+/* Modo TV: os três títulos dos quadros precisam ter a mesma leitura à distância.
+ * O cartão do calendário mantém seu tamanho; apenas seus números ganham área e
+ * contraste para continuar legível sem aumentar a faixa superior. */
+@media (min-width: 701px) {
+  body.radar-tv-active .radar-page.radar-tv .radar-note-card .card-label,
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .calendar-top > div > span,
+  body.radar-tv-active .radar-page.radar-tv .radar-activities .card-label {
+    font-size: clamp(.68rem, .82vw, .9rem);
+    line-height: 1.05;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .calendar-grid button {
+    min-height: clamp(22px, 3.1vh, 36px);
+    font-size: clamp(1rem, 1.35vw, 1.55rem);
+    font-weight: 900;
+    line-height: 1;
+  }
+}
