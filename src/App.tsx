@@ -9,6 +9,9 @@ import { wsOn, wsAnunciarOnline } from './wsClient'
 import { supabase, supabaseDisponivel } from './supabaseClient'
 import { matApi } from './matApi'
 import { EVT_ROTA_RESGATE } from './sos'
+import { useSosListener } from './sos'
+import type { SosAlerta } from './sos'
+import { ativarGps } from './gpsService'
 import { registrarPushSeNecessario, pedirPermissaoEInscrever, getStatusNotificacoes } from './pushNotifications'
 import AgentesOnline from './components/AgentesOnline'
 import BotaoSos from './components/BotaoSos'
@@ -69,10 +72,9 @@ const Dashboard = lazy(() => carregarChunkComRecuperacao(() => import('./compone
 const SosOverlay = lazy(() => carregarChunkComRecuperacao(() => import('./components/SosOverlay')))
 const MateriaisEmprestimos = lazy(() => carregarChunkComRecuperacao(() => import('./components/MateriaisEmprestimos')))
 const Planejamento = lazy(() => carregarChunkComRecuperacao(() => import('./components/Planejamento')))
-const MonitoramentoCNL = lazy(() => carregarChunkComRecuperacao(() => import('./components/MonitoramentoCNL')))
 
-type Aba = 'lista' | 'mapa' | 'nova' | 'viatura' | 'escala' | 'materiais' | 'planejamento' | 'monitoramento'
-const ABAS_VALIDAS: Aba[] = ['lista', 'mapa', 'nova', 'viatura', 'escala', 'materiais', 'planejamento', 'monitoramento']
+type Aba = 'lista' | 'mapa' | 'nova' | 'viatura' | 'escala' | 'materiais' | 'planejamento'
+const ABAS_VALIDAS: Aba[] = ['lista', 'mapa', 'nova', 'viatura', 'escala', 'materiais', 'planejamento']
 const NOMES_ORGAOS = {
   'defesa-civil': 'Guarda Municipal',
   curral: 'Curral',
@@ -282,6 +284,7 @@ function BannerInstalar() {
 
 export default function App() {
   const [logado, setLogado] = useState(estaLogado() && agenteEscolhido() && orgaoEscolhido())
+  const { alertas: alertasSos, dispensar: dispensarSos } = useSosListener()
   const [orgao, setOrgao] = useState(getOrgaoSelecionado)
   const [aba, setAba] = useState<Aba>('lista')
   const abaAtualRef = useRef<Aba>('lista')
@@ -468,6 +471,7 @@ export default function App() {
     if (!logado) return
     const agente = getAgenteLogado()
     if (!agente) return
+    ativarGps()
     // Re-anuncia presença com o nome correto do agente (o WS pode ter conectado
     // antes do login, quando o nome ainda estava vazio)
     wsAnunciarOnline()
@@ -1298,6 +1302,7 @@ export default function App() {
                 destinoExterno={destinoSos ?? destinoCampo}
                 onDestinoExternoConsumido={() => { setDestinoSos(null); setDestinoCampo(null) }}
                 equipamentosCampo={equipamentosCampoMapa}
+                alertasSos={alertasSos}
                 onVerDetalheCampo={(id) => { setAbrirCampoId(id); navegarParaAba('materiais') }}
               />
             </Suspense>
@@ -1345,19 +1350,6 @@ export default function App() {
           </ErrorBoundary>
         )}
 
-        {aba === 'monitoramento' && (
-          <ErrorBoundary>
-            <Suspense fallback={<LazyFallback />}>
-              <MonitoramentoCNL
-                onAbrirMapa={(lat, lng, nome) => {
-                  setDestinoCampo({ lat, lng, nome, soMostrar: true })
-                  navegarParaAba('mapa')
-                }}
-              />
-            </Suspense>
-          </ErrorBoundary>
-        )}
-
       </div>
 
       <nav className="bottom-nav">
@@ -1369,12 +1361,6 @@ export default function App() {
           <span className="nav-emoji">📐</span>
           <span>Planejamento</span>
         </button>
-        {orgaoAtual === 'defesa-civil' && (
-          <button className={`nav-btn nav-monitoramento ${aba === 'monitoramento' ? 'ativo' : ''}`} onClick={() => navegarParaAba('monitoramento')}>
-            <span className="nav-emoji">🌊</span>
-            <span>Monitoramento</span>
-          </button>
-        )}
         <button className={`nav-btn ${aba === 'lista' ? 'ativo' : ''}`} onClick={() => navegarParaAba('lista')}>
           <span className="nav-emoji">📋</span>
           <span>Ocorrências</span>
@@ -1415,7 +1401,7 @@ export default function App() {
       {/* Overlay de SOS recebido — visível em qualquer aba */}
       <ErrorBoundary>
         <Suspense fallback={null}>
-          <SosOverlay />
+          <SosOverlay alertas={alertasSos} onDispensar={dispensarSos} />
         </Suspense>
       </ErrorBoundary>
       {logado && <BannerRadarNotificacao />}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSosListener, tocarSirene, pararSirene, vibrarLongo, rotaParaResgate, iniciarGravacaoAudio, type SosAlerta, type GravacaoHandle } from '../sos'
+import { tocarSirene, pararSirene, vibrarLongo, rotaParaResgate, iniciarGravacaoAudio, type SosAlerta, type GravacaoHandle } from '../sos'
 import { wsSend, wsOnOpen } from '../wsClient'
 import { getAgenteLogado } from './Login'
 import './SosOverlay.css'
@@ -22,8 +22,12 @@ function tempoDecorrido(ts: number, agora: number) {
   return `há ${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}`
 }
 
-export default function SosOverlay() {
-  const { alertas, dispensar } = useSosListener()
+interface Props {
+  alertas: SosAlerta[]
+  onDispensar: (id: string) => void
+}
+
+export default function SosOverlay({ alertas, onDispensar }: Props) {
   const [agora, setAgora] = useState(Date.now())
   const tocandoRef = useRef(false)
 
@@ -55,7 +59,7 @@ export default function SosOverlay() {
           key={a.id}
           alerta={a}
           agora={agora}
-          onDispensar={() => dispensar(a.id)}
+          onDispensar={() => onDispensar(a.id)}
           onSilenciar={() => { pararSirene(); tocandoRef.current = false }}
         />
       ))}
@@ -303,12 +307,22 @@ function SosCard({
 
         <div className="sos-botoes">
           {temGps && (
-            <button
-              className="sos-btn sos-btn-primario"
-              onClick={() => rotaParaResgate(alerta.lat!, alerta.lng!)}
-            >
-              🗺️ Traçar rota de resgate
-            </button>
+            <>
+              <button
+                className="sos-btn sos-btn-primario"
+                onClick={() => rotaParaResgate(alerta.lat!, alerta.lng!)}
+              >
+                🗺️ Traçar rota no app
+              </button>
+              <a
+                className="sos-btn sos-btn-secundario"
+                href={`https://www.google.com/maps/dir/?api=1&destination=${alerta.lat},${alerta.lng}&travelmode=driving`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                ↗ Navegar no Google Maps
+              </a>
+            </>
           )}
           <button className="sos-btn sos-btn-secundario" onClick={onDispensar}>
             ✅ Dispensar alerta

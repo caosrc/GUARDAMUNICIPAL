@@ -229,7 +229,7 @@ export async function gerarRelatorioVistoria(ocorrencia: Ocorrencia): Promise<Bl
   const enderecoFormatado = formatarEnderecoRelatorio(ocorrencia.endereco)
   const coordenadas = formatarCoordenadas(ocorrencia.lat, ocorrencia.lng)
   const assinaturas = nomesAssinatura(ocorrencia)
-  const ehAlexandre = normalizarNomeAgente(ocorrencia.responsavel_registro || '') === 'Alexandre'
+  const ehAlexandre = normalizarNomeAgente(ocorrencia.responsavel_registro || '') === 'Agente 1'
   const textoSituacao = situacao ? `Durante a vistoria, ${situacao}` : 'Durante a vistoria,'
   const textoConclusao = conclusao
     ? `Diante de todas as informações presentes nesse relatório conclui-se que ${conclusao.replace(/[.!?]+$/, '')}. Faz-se necessário que se atente às recomendações listadas nesse relatório para garantir o bem estar, segurança e a tranquilidade de todos.`

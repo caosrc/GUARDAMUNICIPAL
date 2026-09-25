@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMapEvents, useMap, Circle, Polyline, CircleMarker, Pane } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMapEvents, useMap, Circle, Polyline, CircleMarker } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { Ocorrencia } from '../types'
@@ -22,6 +22,7 @@ import {
   descartarMalhaEmMemoria,
 } from '../malhaViaria'
 import { wsOn, wsSend, wsOnOpen } from '../wsClient'
+import type { SosAlerta } from '../sos'
 import {
   ativarGps as ativarGpsGlobal,
   desativarGps as desativarGpsGlobal,
@@ -430,6 +431,78 @@ function GpsCenter({ position, seguir }: { position: [number, number]; seguir: b
   return null
 }
 
+function criarIconeSos() {
+  return L.divIcon({
+    className: '',
+    html: '<span class="mapa-sos-marker" aria-label="Alerta SOS">🆘</span>',
+    iconSize: [42, 42],
+    iconAnchor: [21, 21],
+    popupAnchor: [0, -22],
+  })
+}
+
+function MarcadoresSos({ alertas }: { alertas: SosAlerta[] }) {
+  const map = useMap()
+  const ultimoAlertaFocado = useRef<string | null>(null)
+  const alertaMaisRecente = alertas
+    .filter(alerta => Number.isFinite(alerta.lat) && Number.isFinite(alerta.lng))
+    .reduce<SosAlerta | null>((maisRecente, atual) =>
+      !maisRecente || atual.timestamp > maisRecente.timestamp ? atual : maisRecente, null)
+
+  useEffect(() => {
+    if (!alertaMaisRecente || alertaMaisRecente.id === ultimoAlertaFocado.current) return
+    ultimoAlertaFocado.current = alertaMaisRecente.id
+    map.flyTo(
+      [alertaMaisRecente.lat!, alertaMaisRecente.lng!],
+      Math.max(map.getZoom(), 16),
+      { duration: 0.8 },
+    )
+  }, [alertaMaisRecente?.id, map])
+
+  return (
+    <>
+      {alertas
+        .filter(alerta => Number.isFinite(alerta.lat) && Number.isFinite(alerta.lng))
+        .map(alerta => (
+          <Marker
+            key={`sos-${alerta.id}`}
+            position={[alerta.lat!, alerta.lng!]}
+            icon={criarIconeSos()}
+            zIndexOffset={2500}
+          >
+            <Popup>
+              <div style={{ minWidth: 180, fontFamily: 'inherit' }}>
+                <strong style={{ display: 'block', color: '#b91c1c', marginBottom: 4 }}>
+                  🆘 SOS de {normalizarNomeAgente(alerta.agente)}
+                </strong>
+                <div style={{ fontSize: '0.76rem', color: '#6b7280', marginBottom: 8 }}>
+                  {new Date(alerta.timestamp).toLocaleString('pt-BR')}
+                </div>
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${alerta.lat},${alerta.lng}&travelmode=driving`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-block',
+                    borderRadius: 6,
+                    padding: '7px 10px',
+                    background: '#b91c1c',
+                    color: '#fff',
+                    textDecoration: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                  }}
+                >
+                  ↗ Navegar até o agente
+                </a>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+    </>
+  )
+}
+
 // Centraliza no destino quando ele muda — usado pela busca de endereço.
 function FocoDestino({ destino, rota }: {
   destino: { lat: number; lng: number } | null
@@ -529,6 +602,8 @@ interface Props {
   onDestinoExternoConsumido?: () => void
   /** Equipamentos em campo para exibir no mapa. */
   equipamentosCampo?: EquipamentoCampoMapa[]
+  /** Alertas SOS ativos com localização GPS. */
+  alertasSos: SosAlerta[]
   /** Abre o detalhe de um equipamento em campo no Patrimônio. */
   onVerDetalheCampo?: (equipId: number) => void
 }
@@ -580,7 +655,7 @@ function LimiteZoomCamada({ camada }: { camada: CamadaMapa }) {
 }
 
 // ── Componente principal ────────────────────────────────────────
-export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExterno, onDestinoExternoConsumido, equipamentosCampo = [], onVerDetalheCampo }: Props) {
+export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExterno, onDestinoExternoConsumido, equipamentosCampo = [], alertasSos, onVerDetalheCampo }: Props) {
   const [selecionada, setSelecionada] = useState<Ocorrencia | null>(null)
   const [legendaAberta, setLegendaAberta] = useState(false)
   const [camadaMapa, setCamadaMapa] = useState<CamadaMapa>('padrao')
@@ -1323,6 +1398,7 @@ export default function MapaOcorrencias({ ocorrencias, onSelecionar, destinoExte
         whenReady={() => {}}
       >
         <LimiteZoomCamada camada={camadaMapa} />
+        <MarcadoresSos alertas={alertasSos} />
         {camadaMapa === 'padrao' ? (
           <TileLayer
             key="mapa-padrao"

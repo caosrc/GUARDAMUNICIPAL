@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { AGENTES, getSenhaAgente, normalizarNomeAgente } from '../types'
+import { AGENTES, normalizarNomeAgente } from '../types'
 
 function useGeolocalizacao() {
   const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null)
@@ -66,7 +66,7 @@ interface Props {
   apenasAgente?: boolean
 }
 
-type Etapa = 'credenciais' | 'orgao' | 'agente' | 'senha'
+type Etapa = 'credenciais' | 'orgao' | 'agente'
 
 export default function Login({ onLogin, apenasAgente = false }: Props) {
   const [etapa, setEtapa] = useState<Etapa>(
@@ -78,20 +78,9 @@ export default function Login({ onLogin, apenasAgente = false }: Props) {
   const [carregando, setCarregando] = useState(false)
   const usuarioRef = useRef<HTMLInputElement>(null)
 
-  const [agenteSelecionado, setAgenteSelecionado] = useState('')
-  const [senhaAgente, setSenhaAgente] = useState('')
-  const [erroSenhaAgente, setErroSenhaAgente] = useState(false)
-  const [mostrarSenhaAgente, setMostrarSenhaAgente] = useState(false)
-  const senhaAgenteRef = useRef<HTMLInputElement>(null)
-
   useEffect(() => {
     if (etapa === 'credenciais') {
       setTimeout(() => usuarioRef.current?.focus(), 100)
-    }
-    if (etapa === 'senha') {
-      setErroSenhaAgente(false)
-      setSenhaAgente('')
-      setTimeout(() => senhaAgenteRef.current?.focus(), 100)
     }
   }, [etapa])
 
@@ -117,110 +106,11 @@ export default function Login({ onLogin, apenasAgente = false }: Props) {
     }, 600)
   }
 
-  function confirmarSenhaAgente(e: React.FormEvent) {
-    e.preventDefault()
-    const senhaEsperada = getSenhaAgente(agenteSelecionado)
-    if (senhaAgente === senhaEsperada) {
-      selecionarOrgao('defesa-civil')
-      sessionStorage.setItem(AGENTE_SESSION_KEY, agenteSelecionado)
-      localStorage.setItem(AGENTE_NOME_KEY, agenteSelecionado)
-      onLogin()
-    } else {
-      setErroSenhaAgente(true)
-      setSenhaAgente('')
-      setTimeout(() => senhaAgenteRef.current?.focus(), 50)
-    }
-  }
-
   function selecionarAgente(nome: string) {
-    const senhaNecessaria = getSenhaAgente(nome)
-    if (senhaNecessaria) {
-      setAgenteSelecionado(nome)
-      setEtapa('senha')
-    } else {
-      selecionarOrgao('defesa-civil')
-      sessionStorage.setItem(AGENTE_SESSION_KEY, nome)
-      localStorage.setItem(AGENTE_NOME_KEY, nome)
-      onLogin()
-    }
-  }
-
-  if (etapa === 'senha') {
-    return (
-      <div className="login-tela">
-        <div className="login-box">
-          <div className="login-logo-wrap">
-            <div className="login-insignia" aria-hidden="true">GM</div>
-          </div>
-          <div className="login-titulo">Guarda Municipal</div>
-          <div className="login-subtitulo">Sistema operacional de campo</div>
-
-          <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-            <span style={{ fontSize: '2rem' }}>🔒</span>
-            <div style={{ fontWeight: 700, fontSize: '1.05rem', marginTop: '0.4rem', color: '#1a4b8c' }}>
-              {agenteSelecionado}
-            </div>
-            <div style={{ fontSize: '0.82rem', color: '#6b7280', marginTop: '0.2rem' }}>
-              Digite sua senha para continuar
-            </div>
-          </div>
-
-          <form className="login-form" onSubmit={confirmarSenhaAgente} autoComplete="off">
-            <div className="login-campo">
-              <label className="login-label">Senha</label>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <input
-                  ref={senhaAgenteRef}
-                  className={`login-input${erroSenhaAgente ? ' login-input-erro' : ''}`}
-                  type={mostrarSenhaAgente ? 'text' : 'password'}
-                  inputMode="numeric"
-                  autoComplete="current-password"
-                  placeholder="••••"
-                  value={senhaAgente}
-                  maxLength={20}
-                  onChange={(e) => { setSenhaAgente(e.target.value); setErroSenhaAgente(false) }}
-                  style={{ paddingRight: '5.5rem' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setMostrarSenhaAgente(v => !v)}
-                  style={{
-                    position: 'absolute', right: '0.5rem',
-                    background: 'none', border: 'none', color: '#6b7280',
-                    fontSize: '0.78rem', cursor: 'pointer', padding: '0.2rem 0.4rem',
-                  }}
-                >
-                  {mostrarSenhaAgente ? 'Ocultar' : 'Mostrar'}
-                </button>
-              </div>
-            </div>
-
-            {erroSenhaAgente && (
-              <div className="login-erro">Senha incorreta. Tente novamente.</div>
-            )}
-
-            <button
-              className="login-btn"
-              type="submit"
-              disabled={!senhaAgente.trim()}
-            >
-              Entrar
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setEtapa('agente'); setErroSenhaAgente(false); setSenhaAgente('') }}
-              style={{
-                marginTop: '0.5rem', background: 'none', border: 'none',
-                color: '#6b7280', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline',
-              }}
-            >
-              ← Voltar
-            </button>
-          </form>
-        </div>
-      </div>
-    )
+    selecionarOrgao('defesa-civil')
+    sessionStorage.setItem(AGENTE_SESSION_KEY, nome)
+    localStorage.setItem(AGENTE_NOME_KEY, nome)
+    onLogin()
   }
 
   if (etapa === 'agente') {
@@ -242,9 +132,6 @@ export default function Login({ onLogin, apenasAgente = false }: Props) {
                 onClick={() => selecionarAgente(nome)}
               >
                 {nome}
-                {getSenhaAgente(nome) && (
-                  <span style={{ fontSize: '0.65rem', marginLeft: '0.3rem', opacity: 0.6 }}>🔒</span>
-                )}
               </button>
             ))}
           </div>

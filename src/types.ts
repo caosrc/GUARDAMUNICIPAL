@@ -89,17 +89,22 @@ export interface Ocorrencia {
 }
 
 /** Agentes atualmente disponíveis no acesso e nas telas operacionais. */
-export const AGENTES = ['Alexandre', 'Arthur', 'Lucas', 'Junior', 'Rosane']
+export const AGENTES = ['Agente 1', 'Agente 2', 'Agente 3', 'Agente 4', 'Agente 5']
 
 /** Compatibilidade para sessões e escalas criadas antes da anonimização dos nomes. */
 export const AGENTES_LEGADOS_PARA_NOVOS: Record<string, string> = {
-  A: 'Alexandre',
-  B: 'Arthur',
-  C: 'Lucas',
-  D: 'Junior',
-  E: 'Rosane',
-  'Moisés': 'Alexandre',
-  Valteir: 'Arthur',
+  A: 'Agente 1',
+  B: 'Agente 2',
+  C: 'Agente 3',
+  D: 'Agente 4',
+  E: 'Agente 5',
+  Alexandre: 'Agente 1',
+  Arthur: 'Agente 2',
+  Lucas: 'Agente 3',
+  Junior: 'Agente 4',
+  Rosane: 'Agente 5',
+  'Moisés': 'Agente 1',
+  Valteir: 'Agente 2',
 }
 
 export function normalizarNomeAgente(nome: string): string {
@@ -107,20 +112,20 @@ export function normalizarNomeAgente(nome: string): string {
   return AGENTES_LEGADOS_PARA_NOVOS[valor] ?? valor
 }
 
-/** Arthur também administra os registros que foram criados pelo agente legado J. */
+/** Agente 2 também administra registros criados pelo agente legado J. */
 export function agentePodeGerenciarCriacao(criador: string | null | undefined, agente: string | null | undefined): boolean {
   const nomeCriador = String(criador ?? '').trim()
   const nomeAgente = normalizarNomeAgente(String(agente ?? '').trim())
   return nomeCriador === nomeAgente
-    || (nomeAgente === 'Arthur' && nomeCriador === 'J')
+    || (nomeAgente === 'Agente 2' && nomeCriador === 'J')
 }
 
 export const AGENTE_SENHAS: Record<string, string> = {
-  Alexandre: '4668',
-  Arthur: '1234',
-  Lucas: '0356',
-  Junior: '1234',
-  Rosane: '1969',
+  'Agente 1': '4668',
+  'Agente 2': '1234',
+  'Agente 3': '0356',
+  'Agente 4': '1234',
+  'Agente 5': '1969',
   // Mantidos para sessões antigas que ainda carreguem a identificação A–J.
   A: '1234',
   B: '1234',
