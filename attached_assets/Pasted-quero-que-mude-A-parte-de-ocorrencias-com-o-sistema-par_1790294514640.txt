@@ -1,0 +1,912 @@
+quero que mude A parte de ocorrencias com o sistema parecido com o SISNEP QUE AS GUARDAS MUNICIPAIS USAM EM MINAS GERAIS, MELHORANDO COM ESSAS MELHORIAS ABAIXO
+1. Como eu estruturaria o aplicativo
+
+Eu faria o sistema com estes módulos principais:
+
+Nova Ocorrência
+Atendimentos em andamento
+Histórico de ocorrências
+Mapa operacional
+Patrulhamento
+Abordagem
+Trânsito
+Patrimônio público
+Escolas
+Eventos
+Apoio a outros órgãos
+Pessoas/localizações envolvidas
+Veículos
+Objetos/documentos
+Fotos e vídeos
+Encaminhamentos
+Relatórios
+Dashboard/estatísticas
+Escala e equipes
+Comunicação entre equipes
+
+E deixaria o sistema preparado para funcionar offline, sincronizando posteriormente quando houver internet.
+
+2. Principais tipos de ocorrência
+
+Eu não colocaria um formulário gigante único.
+
+O ideal é:
+
+Tipo de ocorrência → formulário específico → campos específicos daquela ocorrência.
+
+Isso torna o preenchimento muito mais rápido para o guarda.
+
+Categorias principais
+Categoria	Ocorrências
+Segurança	Furto, roubo, ameaça, agressão, violência, suspeita de crime
+Patrimônio	Dano, vandalismo, depredação, invasão, ocupação irregular
+Trânsito	Acidente, infração, veículo abandonado, congestionamento
+Perturbação	Som alto, perturbação do sossego, conflito entre pessoas
+Pessoas	Pessoa desaparecida, pessoa em situação de vulnerabilidade
+Escolas	Ocorrência escolar, conflito, ameaça, dano, acesso indevido
+Espaço público	Praça, parque, terminal, prédio público
+Eventos	Apoio, controle de acesso, segurança, trânsito
+Meio ambiente	Descarte irregular, queimadas, dano ambiental
+Defesa Civil	Alagamento, queda de árvore, deslizamento, risco estrutural
+Animais	Animal solto, animal ferido, risco à população
+Atendimento social	Pessoa em situação de rua, vulnerabilidade, apoio
+Fiscalização	Comércio irregular, ocupação de espaço público, posturas
+Apoio	PM, Bombeiros, SAMU, Defesa Civil, fiscalização etc.
+Outros	Atendimento não enquadrado
+
+Isso conversa bastante com as atribuições encontradas nas três cidades.
+
+Em Conselheiro Lafaiete, por exemplo, a legislação municipal atribui à Guarda proteção de bens, serviços e instalações, vigilância fixa e móvel, registro de invasões, infrações e danos, controle de acesso, orientação sobre prevenção de acidentes/incêndios e colaboração com a segurança pública e trânsito.
+
+Em Congonhas, a legislação inclui patrimônio municipal, patrimônio histórico e cultural, trânsito, Defesa Civil, auxílio em incêndio/salvamento, meio ambiente, apoio aos fiscais e segurança de eventos e próprios municipais.
+
+3. Formulário inicial de TODA ocorrência
+
+Antes de entrar nos detalhes específicos, toda ocorrência deveria começar com uma ficha padrão.
+
+Identificação
+
+Número da ocorrência
+
+Gerado automaticamente
+
+Município
+
+Ouro Branco
+Conselheiro Lafaiete
+Congonhas
+
+Data
+
+automática
+
+Hora da abertura
+
+automática
+
+Hora do despacho
+
+automática
+
+Hora da chegada
+
+automática
+
+Hora do encerramento
+
+automática
+Origem
+153
+Telefone
+Aplicativo
+Rádio
+Patrulhamento
+Solicitação de servidor
+Solicitação de outro órgão
+Flagrante pela equipe
+Central
+Outros
+Local
+Endereço
+Número
+Complemento
+Bairro
+Ponto de referência
+Latitude
+Longitude
+GPS automático
+
+E eu colocaria:
+
+[📍 USAR MINHA LOCALIZAÇÃO]
+
+Isso é muito importante para o guarda.
+
+4. Classificação da ocorrência
+
+Depois do endereço:
+
+Prioridade
+🔴 Emergência
+🟠 Alta
+🟡 Média
+🟢 Baixa
+ℹ️ Informativa
+Situação
+Recebida
+Despachada
+Em deslocamento
+No local
+Em atendimento
+Aguardando apoio
+Encaminhada
+Finalizada
+Cancelada
+Natureza
+
+Selecionada conforme o tipo de ocorrência.
+
+5. Pessoas envolvidas
+
+Essa parte será muito importante.
+
+Não colocaria simplesmente "nome da pessoa".
+
+Criaria:
+
+Pessoa 1
+
+Tipo de envolvimento
+
+Solicitante
+Vítima
+Autor
+Suspeito
+Testemunha
+Envolvido
+Proprietário
+Responsável
+Condutor
+Passageiro
+Desconhecido
+Dados
+Nome completo
+Nome social, se aplicável
+CPF
+RG
+Data de nascimento
+Sexo
+Telefone
+Endereço
+Documento apresentado
+Observações
+
+Importante: CPF/RG e outros dados pessoais devem ter controle de acesso, registro de auditoria e tratamento conforme a LGPD.
+
+6. Ocorrência de dano ao patrimônio
+
+Muito importante para as três cidades.
+
+Campos
+
+Tipo de patrimônio
+
+Escola
+Praça
+Parque
+Unidade de saúde
+Prefeitura
+Prédio público
+Terminal
+Veículo oficial
+Monumento
+Equipamento urbano
+Iluminação
+Placa
+Abrigo de ônibus
+Outro
+Tipo de dano
+Pichação
+Quebra
+Furto
+Tentativa de furto
+Depredação
+Incêndio
+Arrombamento
+Vandalismo
+Dano estrutural
+Outros
+Informações
+Local
+Bem atingido
+Responsável pelo patrimônio
+Estimativa do dano
+Possível autor
+Testemunhas
+Câmeras próximas
+Fotos
+Vídeos
+Necessita isolamento?
+Necessita manutenção?
+Órgão acionado
+7. Furto/roubo
+
+Formulário específico.
+
+Evento
+Furto
+Tentativa de furto
+Roubo
+Tentativa de roubo
+Vítima
+
+Dados da vítima.
+
+Objeto subtraído
+Tipo
+Marca
+Modelo
+Cor
+Número de série
+IMEI, quando aplicável
+Valor aproximado
+Características particulares
+Autor/suspeito
+Quantidade
+Sexo aparente
+Características
+Vestimentas
+Sentido de fuga
+Veículo utilizado
+Placa, se conhecida
+Evidências
+Câmera
+Fotografia
+Vídeo
+Testemunha
+Objeto localizado
+Outro
+Encaminhamento
+PM
+Polícia Civil
+Delegacia
+Outro órgão
+8. Agressão / ameaça / conflito
+
+Campos:
+
+Tipo de conflito
+Quantidade de envolvidos
+Agressor identificado?
+Vítima identificada?
+Houve lesão?
+Houve ameaça?
+Houve uso de arma?
+Necessitou atendimento médico?
+SAMU acionado?
+PM acionada?
+Criança/adolescente envolvido?
+Idoso envolvido?
+Mulher em situação de violência?
+Medidas adotadas
+Encaminhamento
+
+Aqui o aplicativo pode mostrar alertas de encaminhamento, sem o guarda precisar decorar todos os fluxos.
+
+9. Perturbação do sossego
+
+Muito útil no contexto municipal.
+
+Campos
+Tipo de perturbação
+Som alto
+Festa
+Bar
+Residência
+Evento
+Veículo
+Estabelecimento
+Discussão
+Outros
+Endereço
+Responsável
+Horário
+Origem do ruído
+Equipamento utilizado
+Orientação realizada
+Advertência
+Fiscalização acionada
+PM acionada
+Houve reincidência?
+Fotos
+Vídeos
+Observações
+10. Trânsito
+
+Eu faria um módulo próprio.
+
+A legislação de Congonhas, por exemplo, prevê atuação da Guarda no trânsito, e Conselheiro Lafaiete possui estrutura municipal de trânsito integrada à Defesa Social.
+
+Ocorrências
+Acidente sem vítima
+Acidente com vítima
+Veículo abandonado
+Veículo estacionado irregularmente
+Obstrução da via
+Problema de sinalização
+Semáforo com defeito
+Congestionamento
+Apoio ao trânsito
+Interdição de via
+Evento
+Veículo suspeito
+Fiscalização
+Acidente
+
+Veículo 1
+
+Placa
+Marca
+Modelo
+Cor
+Tipo
+Condutor
+
+Veículo 2
+
+mesmos campos
+Acidente
+Data/hora
+Local
+Condições da via
+Clima
+Iluminação
+Vítimas
+Feridos
+Óbitos
+Danos materiais
+SAMU
+Bombeiros
+PM
+Perícia
+Fotos
+Croqui
+11. Veículos
+
+Eu criaria um cadastro reutilizável.
+
+Veículo
+Placa
+UF
+Marca
+Modelo
+Cor
+Ano
+Tipo
+RENAVAM
+Chassi, quando necessário
+Situação
+Condutor
+Proprietário
+Fotos
+
+Isso permite que o mesmo veículo apareça em várias ocorrências sem redigitar tudo.
+
+12. Ocorrências em escolas
+
+Essa é uma área que eu destacaria no aplicativo.
+
+A Lei 13.022/2014 prevê atuação preventiva das Guardas na segurança escolar, incluindo proteção do entorno e ações educativas.
+
+Tipo
+Ameaça
+Briga
+Agressão
+Vandalismo
+Dano
+Furto
+Pessoa estranha
+Acesso indevido
+Droga
+Arma
+Perturbação
+Aluno desaparecido
+Acidente
+Apoio preventivo
+Campos
+Escola
+Endereço
+Turno
+Diretor/responsável
+Aluno envolvido
+Idade/faixa etária
+Responsável legal
+Professor/servidor
+Tipo de ocorrência
+Número de envolvidos
+Medidas adotadas
+Responsável acionado
+Conselho Tutelar
+PM
+SAMU
+Bombeiros
+Polícia Civil
+
+Aqui eu teria cuidado especial com dados de crianças e adolescentes, restringindo acesso e evitando exposição desnecessária.
+
+13. Apoio à Defesa Civil
+
+Isso seria particularmente interessante para o seu projeto porque você já trabalha com Defesa Civil.
+
+Criaria integração:
+
+GUARDA → DEFESA CIVIL
+
+Tipos
+Alagamento
+Enchente
+Deslizamento
+Queda de árvore
+Queda de muro
+Risco estrutural
+Desabamento
+Interdição de via
+Poste/fiação
+Incêndio
+Risco de incêndio
+Animal em risco
+Pessoa em risco
+Outro
+Campos
+Localização GPS
+Endereço
+Tipo de risco
+Gravidade aparente
+Pessoas em risco
+Imóveis afetados
+Via afetada
+Necessidade de isolamento
+Necessidade de evacuação
+Fotos
+Vídeos
+Observações
+Defesa Civil acionada
+Bombeiros acionados
+Concessionária acionada
+
+Isso poderia conversar diretamente com o seu GeoVistorias, inclusive.
+
+14. Eventos
+
+Muito importante para as cidades.
+
+Congonhas, por exemplo, possui entre as atribuições da Guarda a vigilância de eventos, orientação do público e trânsito e prevenção de danos ao patrimônio.
+
+Cadastro do evento
+Nome
+Organizador
+Local
+Data
+Horário
+Público estimado
+Tipo de evento
+Necessidade de trânsito
+Quantidade de agentes
+Viaturas
+Pontos de acesso
+Rotas de emergência
+Apoio Bombeiros
+Apoio SAMU
+Apoio PM
+Durante o evento
+Ocorrência
+Horário
+Local
+Tipo
+Pessoas envolvidas
+Providências
+Fotos
+Encaminhamento
+15. Patrulhamento
+
+Eu criaria uma função diferente de "ocorrência".
+
+Início do patrulhamento
+Equipe
+Viatura
+Guarda 1
+Guarda 2
+Município
+Setor
+Horário
+Hodômetro
+KM inicial
+Combustível
+Durante o patrulhamento
+
+O sistema registra automaticamente:
+
+GPS + horário
+
+E permite:
+
+Iniciar patrulhamento
+Pausar
+Registrar ponto
+Registrar abordagem
+Registrar ocorrência
+Registrar apoio
+Registrar irregularidade
+Finalizar patrulhamento
+
+Depois o comandante consegue visualizar a rota.
+
+16. Abordagem
+
+Eu criaria um formulário rápido.
+
+Tipo
+Pessoa
+Veículo
+Estabelecimento
+Local público
+Pessoa
+Identificação
+Motivo da abordagem
+Local
+Horário
+Resultado
+Veículo
+Placa
+Modelo
+Cor
+Condutor
+Motivo
+Resultado
+Resultado
+Nada constatado
+Orientação
+Encaminhamento
+Apoio solicitado
+Ocorrência gerada
+17. Encaminhamento
+
+Essa é uma das partes mais importantes.
+
+No encerramento o guarda escolhe:
+
+Órgão acionado
+Polícia Militar
+Polícia Civil
+Corpo de Bombeiros
+SAMU
+Defesa Civil
+Conselho Tutelar
+Trânsito
+Fiscalização
+Meio Ambiente
+Assistência Social
+Saúde
+Obras
+Concessionária
+Outro
+Forma
+Rádio
+Telefone
+Presencial
+Sistema integrado
+Viatura
+Outro
+Resultado
+Atendimento assumido pelo órgão
+Aguardando órgão
+Encaminhado
+Resolvido pela Guarda
+Orientação
+Sem constatação
+Cancelado
+18. Fotos e vídeos
+
+Toda ocorrência deveria permitir:
+
+📷 Fotografar
+
+🎥 Gravar vídeo
+
+📎 Anexar arquivo
+
+E o sistema deveria guardar automaticamente:
+
+Data
+Hora
+GPS
+Usuário
+ID da ocorrência
+
+Isso cria uma cadeia de registro muito melhor.
+
+19. Assinatura/encerramento
+
+No final:
+
+Relato do guarda
+
+Campo de texto:
+
+"Relate de forma objetiva os fatos observados, providências adotadas e encaminhamentos realizados."
+
+Depois:
+
+Providências
+
+☐ Orientação
+☐ Advertência
+☐ Isolamento
+☐ Encaminhamento
+☐ Acionamento PM
+☐ Acionamento Bombeiros
+☐ Acionamento SAMU
+☐ Acionamento Defesa Civil
+☐ Acionamento Fiscalização
+☐ Outro
+
+20. Uma função que eu considero MUITO importante
+"GERAR BOLETIM"
+
+Ao terminar a ocorrência:
+
+[ GERAR RELATÓRIO ]
+
+O sistema monta automaticamente:
+
+BOLETIM DE ATENDIMENTO
+
+Município: Congonhas
+Número: GCM-2026-000154
+Natureza: Dano ao patrimônio público
+Data: 24/09/2026
+Horário: 19:32
+Local: ...
+
+Equipe:
+GM XXXXX
+GM XXXXX
+
+Descrição:
+...
+
+Providências:
+...
+
+Encaminhamento:
+...
+
+Anexos:
+5 fotografias
+
+E gera:
+
+PDF
+
+Isso reduziria muito o trabalho administrativo.
+
+21. Dashboard do comandante
+
+Aqui o sistema começa a ficar muito interessante.
+
+Hoje
+
+Ocorrências
+
+37
+
+Em atendimento
+
+5
+
+Finalizadas
+
+29
+
+Pendentes
+
+3
+
+Viaturas em serviço
+
+6
+
+Guardas em serviço
+
+18
+
+Gráfico
+
+Ocorrências por natureza
+
+Trânsito
+Patrimônio
+Perturbação
+Apoio
+Segurança
+Escolas
+Defesa Civil
+Eventos
+Mapa
+
+Mapa da cidade com pontos:
+
+🔴 ocorrência grave
+🟠 ocorrência em atendimento
+🟢 ocorrência encerrada
+🔵 patrulhamento
+🟣 apoio
+
+22. Comparação entre as três cidades
+
+Eu faria uma arquitetura assim:
+
+Plataforma
+
+GUARDA+
+
+ou
+
+GCM OPERACIONAL
+
+Municípios
+
+Ouro Branco
+
+configuração própria
+bairros
+prédios públicos
+escolas
+contatos
+setores
+órgãos
+
+Conselheiro Lafaiete
+
+configuração própria
+bairros
+prédios
+escolas
+terminal
+trânsito
+órgãos
+
+Congonhas
+
+configuração própria
+bairros
+patrimônio histórico
+escolas
+eventos
+trânsito
+órgãos
+
+A legislação de Congonhas, por exemplo, inclui expressamente a proteção de documentos, obras e bens históricos e culturais.
+
+23. O diferencial que eu colocaria no seu sistema
+
+Como você já trabalha com sistemas de Defesa Civil, eu não faria simplesmente um "aplicativo de formulário".
+
+Faria um Centro Operacional Municipal Integrado.
+
+Algo assim:
+
+                 GCM OPERACIONAL
+                       │
+       ┌───────────────┼───────────────┐
+       │               │               │
+    OCORRÊNCIAS    PATRULHAMENTO     MAPA
+       │               │               │
+       ├───────────────┼───────────────┤
+       │               │               │
+    TRÂNSITO         ESCOLAS        EVENTOS
+       │               │               │
+       ├───────────────┼───────────────┤
+       │               │               │
+  PATRIMÔNIO      DEFESA CIVIL     APOIO
+       │               │               │
+       └───────────────┼───────────────┘
+                       │
+                 BANCO DE DADOS
+                       │
+              DASHBOARD / RELATÓRIOS
+
+E posteriormente:
+
+GCM + Defesa Civil + Trânsito + Bombeiros + PM + SAMU
+
+com cada órgão vendo somente o que lhe compete.
+
+24. Outra coisa importante: usar códigos padronizados
+
+Eu criaria uma tabela de natureza:
+
+001 - Apoio preventivo
+002 - Patrulhamento
+003 - Dano ao patrimônio
+004 - Furto
+005 - Roubo
+006 - Ameaça
+007 - Agressão
+008 - Perturbação do sossego
+009 - Pessoa em situação de vulnerabilidade
+010 - Pessoa desaparecida
+011 - Acidente de trânsito
+012 - Veículo abandonado
+013 - Infração de trânsito
+014 - Vandalismo
+015 - Ocorrência escolar
+016 - Apoio a evento
+017 - Incêndio
+018 - Queda de árvore
+019 - Alagamento
+020 - Deslizamento
+021 - Risco estrutural
+022 - Animal
+023 - Meio ambiente
+024 - Fiscalização
+025 - Apoio a órgão público
+026 - Outros
+
+Depois podemos expandir isso para 100+ naturezas, mas sem deixar tudo aparecendo para o guarda.
+
+25. O que eu faria na primeira versão
+
+Para não deixar o projeto enorme logo de início, eu faria o MVP com:
+
+Tela inicial
+
+🚨 NOVA OCORRÊNCIA
+
+📍 MAPA
+
+🚓 PATRULHAMENTO
+
+📋 MINHAS OCORRÊNCIAS
+
+📻 CENTRAL
+
+📊 DASHBOARD
+
+Nova ocorrência
+Natureza
+Localização automática
+Pessoas
+Veículos
+Descrição
+Fotos
+Providências
+Encaminhamento
+Finalizar
+E depois evoluiria para:
+
+Fase 2
+
+patrulhamento GPS
+viaturas
+escalas
+mapa operacional
+dashboard
+
+Fase 3
+
+trânsito
+escolas
+eventos
+relatórios automáticos
+
+Fase 4
+
+inteligência operacional
+mapas de calor
+estatísticas por bairro
+horários de maior ocorrência
+reincidência de locais
+indicadores de produtividade
+Um ponto especialmente relevante para o seu projeto
+

@@ -1,7 +1,7 @@
 {
-  "name": "Defesa Civil - Conselheiro Lafaiete - MG",
-  "short_name": "Defesa Civil",
-  "description": "Sistema operacional de campo da Defesa Civil em Conselheiro Lafaiete - MG",
+  "name": "Guarda Municipal - Conselheiro Lafaiete - MG",
+  "short_name": "Guarda Municipal",
+  "description": "Central operacional de campo da Guarda Municipal em Conselheiro Lafaiete - MG",
   "id": "/",
   "start_url": "/",
   "scope": "/",
@@ -9,7 +9,7 @@
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#1a4b8c",
+  "theme_color": "#102a43",
   "lang": "pt-BR",
   "icons": [
     {

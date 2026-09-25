@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, lazy, Suspense, useRef, Comp
 import type { ErrorInfo, ReactNode } from 'react'
 import './App.css'
 import Login, { estaLogado, agenteEscolhido, orgaoEscolhido, getAgenteLogado, getOrgaoSelecionado } from './components/Login'
-import type { Ocorrencia, NivelRisco } from './types'
+import type { Ocorrencia, NivelRisco, CategoriaOcorrencia } from './types'
 import { NATUREZA_ICONE, normalizarNomeAgente } from './types'
 import { listarOcorrencias, enviarOcorrenciaServidor, listarRegistrosCurral, ApiError } from './api'
 import { wsOn, wsAnunciarOnline } from './wsClient'
@@ -18,6 +18,7 @@ import BannerRadarNotificacao from './components/BannerRadarNotificacao'
 import { cacheOcorrencias, getCachedOcorrencias, getPending, removePending, countPending, clearAllPending } from './offline'
 import { calcularAreaM2, formatarArea } from './components/PoligonoAreaQueimada'
 import type { CurralRegistro } from './components/Curral'
+import HubOcorrencias from './components/HubOcorrencias'
 
 interface EquipamentoCampoMapa {
   id: number
@@ -73,7 +74,7 @@ const MonitoramentoCNL = lazy(() => carregarChunkComRecuperacao(() => import('./
 type Aba = 'lista' | 'mapa' | 'nova' | 'viatura' | 'escala' | 'materiais' | 'planejamento' | 'monitoramento'
 const ABAS_VALIDAS: Aba[] = ['lista', 'mapa', 'nova', 'viatura', 'escala', 'materiais', 'planejamento', 'monitoramento']
 const NOMES_ORGAOS = {
-  'defesa-civil': 'Defesa Civil',
+  'defesa-civil': 'Guarda Municipal',
   curral: 'Curral',
   procon: 'Procon',
 } as const
@@ -260,7 +261,7 @@ function BannerInstalar() {
   return (
     <div className="pwa-banner">
       <div className="pwa-banner-icone">
-        <img src="/icon-192.png" alt="Defesa Civil Conselheiro Lafaiete" />
+         <div className="pwa-banner-icone-texto">GM</div>
       </div>
       <div className="pwa-banner-texto">
         <strong>Instale o app</strong>
@@ -289,6 +290,7 @@ export default function App() {
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([])
   const [carregando, setCarregando] = useState(true)
   const [selecionada, setSelecionada] = useState<Ocorrencia | null>(null)
+  const [novaCategoria, setNovaCategoria] = useState<CategoriaOcorrencia | undefined>(undefined)
   const [filtroNivel, setFiltroNivel] = useState<NivelRisco | 'todos'>('todos')
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'ativo' | 'resolvido'>('todos')
   const [filtroData, setFiltroData] = useState<string>(hojeStr())
@@ -1012,6 +1014,7 @@ export default function App() {
           onVoltar={() => navegarParaAba('lista')}
           isOnline={isOnline}
           orgao={orgaoAtual}
+           categoriaInicial={novaCategoria}
         />
       </Suspense>
     )
@@ -1059,9 +1062,9 @@ export default function App() {
 
       <header className="header">
         <div className="header-logo">
-          <img className="header-logo-imagem" src="/defesa-civil-logo.png" alt="Defesa Civil" />
+          <div className="marca-guarda" aria-hidden="true">GM</div>
           <div className="header-textos">
-            <span className="header-nome">Defesa Civil</span>
+            <span className="header-nome">Guarda Municipal</span>
             <span className="header-cidade">Conselheiro Lafaiete — MG · {nomeOrgaoAtual}</span>
           </div>
         </div>
@@ -1143,6 +1146,20 @@ export default function App() {
       <div className="conteudo">
         {aba === 'lista' && (
           <>
+            <HubOcorrencias
+              total={ocorrencias.length}
+              ativos={contagens.ativos}
+              altos={contagens.alto}
+              online={isOnline}
+              agente={getAgenteLogado()}
+              onNova={(categoria) => { setNovaCategoria(categoria); navegarParaAba('nova') }}
+              onAtivos={() => { setFiltroData('todas'); setFiltroStatus('ativo'); navegarParaAba('lista') }}
+              onHistorico={() => { setFiltroData('todas'); setFiltroStatus('resolvido'); navegarParaAba('lista') }}
+              onMapa={() => navegarParaAba('mapa')}
+              onPatrulhamento={() => navegarParaAba('planejamento')}
+              onRelatorios={() => document.getElementById('dashboard-ocorrencias')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              onInfo={showToast}
+            />
             <div className="filtros-box">
               <div className="filtros-row filtros-data-row">
                 <span className="filtros-label">📅 Data:</span>

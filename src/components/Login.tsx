@@ -150,13 +150,9 @@ export default function Login({ onLogin, apenasAgente = false }: Props) {
       <div className="login-tela">
         <div className="login-box">
           <div className="login-logo-wrap">
-            <img
-              className="login-logo"
-              src="/defesa-civil-logo.png"
-              alt="Defesa Civil"
-            />
+            <div className="login-insignia" aria-hidden="true">GM</div>
           </div>
-          <div className="login-titulo">Defesa Civil</div>
+          <div className="login-titulo">Guarda Municipal</div>
           <div className="login-subtitulo">Sistema operacional de campo</div>
 
           <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
@@ -232,9 +228,9 @@ export default function Login({ onLogin, apenasAgente = false }: Props) {
       <div className="login-tela">
         <div className="login-box login-box--agente">
           <div className="login-logo-wrap">
-            <img className="login-logo" src="/defesa-civil-logo.png" alt="Defesa Civil" />
+            <div className="login-insignia" aria-hidden="true">GM</div>
           </div>
-          <div className="login-titulo">Defesa Civil</div>
+          <div className="login-titulo">Guarda Municipal</div>
           <div className="login-subtitulo">Sistema operacional de campo</div>
 
           <div className="login-agente-titulo">Quem está acessando?</div>
@@ -262,9 +258,9 @@ export default function Login({ onLogin, apenasAgente = false }: Props) {
     <div className="login-tela">
       <div className="login-box">
         <div className="login-logo-wrap">
-          <img className="login-logo" src="/defesa-civil-logo.png" alt="Defesa Civil" />
+            <div className="login-insignia" aria-hidden="true">GM</div>
         </div>
-        <div className="login-titulo">Defesa Civil</div>
+        <div className="login-titulo">Guarda Municipal</div>
         <div className="login-subtitulo">Sistema operacional de campo</div>
 
         <form className="login-form" onSubmit={entrar} autoComplete="off">

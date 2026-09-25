@@ -2,8 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { TIPOS_OCORRENCIA, NATUREZAS, AGENTES } from '../types'
-import type { NivelRisco, StatusOc } from '../types'
+import { TIPOS_OCORRENCIA, NATUREZAS, AGENTES, CATEGORIAS_GUARDA } from '../types'
+import type { NivelRisco, StatusOc, CategoriaOcorrencia } from '../types'
 import { criarOcorrencia } from '../api'
 import { geocodificarEndereco } from '../offline'
 import { formatarCoordenadas, adicionarMarcaDagua, mensagemErroGps } from '../utils'
@@ -45,11 +45,12 @@ interface Props {
   onVoltar: () => void
   isOnline: boolean
   orgao?: OrgaoOperacional
+  categoriaInicial?: CategoriaOcorrencia
 }
 
 type FocoIncendio = { lat: number | null; lng: number | null; buscando: boolean }
 
-export default function NovaOcorrencia({ onSalvo, onVoltar, isOnline, orgao = 'defesa-civil' }: Props) {
+export default function NovaOcorrencia({ onSalvo, onVoltar, isOnline, orgao = 'defesa-civil', categoriaInicial }: Props) {
   const hoje = new Date().toISOString().split('T')[0]
   const ehCurral = orgao === 'curral'
   const ehProcon = orgao === 'procon'
@@ -63,6 +64,7 @@ export default function NovaOcorrencia({ onSalvo, onVoltar, isOnline, orgao = 'd
   useEffect(() => {
     carregarFeriadosCustom().then(setFeriadosCustom).catch(() => {})
   }, [])
+
   const [tipo, setTipo] = useState(ehCurral ? 'Diligência' : ehProcon ? 'Fiscalização' : '')
   const [tipoOutro, setTipoOutro] = useState('')
   const [natureza, setNatureza] = useState(naturezaPadrao)
@@ -155,6 +157,15 @@ export default function NovaOcorrencia({ onSalvo, onVoltar, isOnline, orgao = 'd
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (!categoriaInicial || ehCurral || ehProcon) return
+    const categoria = CATEGORIAS_GUARDA.find((item) => item.id === categoriaInicial)
+    if (!categoria) return
+    setTipo(categoria.tipo)
+    setNatureza(categoria.natureza)
+    setTipoOutro('')
+  }, [categoriaInicial, ehCurral, ehProcon])
 
   // ── Salvar rascunho automaticamente enquanto o agente preenche ──────────────
   useEffect(() => {
@@ -473,7 +484,7 @@ export default function NovaOcorrencia({ onSalvo, onVoltar, isOnline, orgao = 'd
       <header className="header">
         <button className="btn-voltar" onClick={onVoltar}>‹</button>
         <div className="header-logo-mini">
-          <img className="header-logo-mini-imagem" src="/defesa-civil-logo.png" alt="Defesa Civil" />
+          <div className="marca-guarda" aria-hidden="true">GM</div>
           <span className="header-titulo-texto">Nova Ocorrência</span>
         </div>
         <div style={{ width: 36 }}>

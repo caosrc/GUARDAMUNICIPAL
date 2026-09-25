@@ -16,7 +16,7 @@ const opcoes: Array<{
   {
     id: 'defesa-civil',
     icone: '🛡️',
-    logo: '/defesa-civil-logo.png',
+    logo: '/icon-192.png',
     nome: 'Defesa Civil',
     descricao: 'Ocorrências, monitoramento e operações de campo.',
     destaque: 'Operações gerais',
@@ -33,7 +33,7 @@ export default function SelecaoOrgao({ onSelecionar }: Props) {
     <main className="login-tela selecao-orgao-tela">
       <section className="login-box selecao-orgao-box">
         <div className="login-logo-wrap">
-          <img className="login-logo" src="/defesa-civil-logo.png" alt="Defesa Civil" />
+          <div className="login-insignia" aria-hidden="true">GM</div>
         </div>
         <div className="login-titulo">Escolha o órgão</div>
         <div className="login-subtitulo">Entre no ambiente de trabalho que deseja acessar</div>

@@ -196,7 +196,7 @@ export default function Dashboard({ ocorrencias }: Props) {
     : 0
 
   return (
-    <div className="dashboard-box">
+    <div className="dashboard-box" id="dashboard-ocorrencias">
       <button className="dashboard-toggle" onClick={() => setAberto(v => !v)}>
         <span>📊 Dashboard de Ocorrências</span>
         <span className="dashboard-toggle-meta">
