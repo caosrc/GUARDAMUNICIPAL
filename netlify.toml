@@ -1,0 +1,66 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+  VITE_NETLIFY_STATIC = "true"
+
+# As Functions são o backend compatível com o deploy estático do Netlify.
+# O catch-all fica por último para não transformar respostas de API em HTML.
+[[redirects]]
+  from = "/api/radar-chuva"
+  to = "/.netlify/functions/radar-chuva"
+  status = 200
+
+[[redirects]]
+  from = "/api/monitoramento-cnl"
+  to = "/.netlify/functions/monitoramento-cnl"
+  status = 200
+
+[[redirects]]
+  from = "/api/monitoramento-cnl/cotas"
+  to = "/.netlify/functions/monitoramento-cnl-cotas"
+  status = 200
+
+[[redirects]]
+  from = "/api/focos-incendio"
+  to = "/.netlify/functions/focos-incendio"
+  status = 200
+
+[[redirects]]
+  from = "/api/earth-engine-focos"
+  to = "/.netlify/functions/earth-engine-focos"
+  status = 200
+
+[[redirects]]
+  from = "/api/planet-focos"
+  to = "/.netlify/functions/planet-focos"
+  status = 200
+
+[[redirects]]
+  from = "/api/geocode"
+  to = "/.netlify/functions/geocode"
+  status = 200
+
+[[redirects]]
+  from = "/api/rota"
+  to = "/.netlify/functions/rota"
+  status = 200
+
+[[redirects]]
+  from = "/api/rrqpe"
+  to = "/.netlify/functions/rrqpe"
+  status = 200
+
+[[redirects]]
+  from = "/api/tempo"
+  to = "/.netlify/functions/tempo"
+  status = 200
+
+# React/Vite é uma SPA: rotas internas devem voltar ao shell do aplicativo.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

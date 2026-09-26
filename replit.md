@@ -42,9 +42,10 @@ Required environment variables:
 - `attached_assets/` — report template (.docx)
 
 ## Architecture on Replit
-- The Express server and Replit PostgreSQL are the only application backend and data store for this copy
+- The Express server and Replit PostgreSQL are the complete application backend and data store for the Replit deployment
 - The Vite frontend uses relative `/api` and `/ws` endpoints served by Express
-- This copy has no Netlify deploy configuration and does not connect to Supabase
+- The Netlify deployment is configured in `netlify.toml` as a static Vite build (`dist`) with the compatible read-only/auxiliary Netlify Functions under `netlify/functions`
+- Netlify does not provide this copy's persistent Express server, PostgreSQL or WebSocket endpoint; full CRUD, SOS persistence, push delivery and realtime tracking require the Replit server or a separately configured external backend
 
 ## Product
 - Register and manage civil defense incidents with photos and GPS

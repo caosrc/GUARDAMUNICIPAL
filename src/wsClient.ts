@@ -12,6 +12,7 @@ let ws: WebSocket | null = null
 let isOpen = false
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 let pingTimer: ReturnType<typeof setInterval> | null = null
+const netlifyStatic = import.meta.env.VITE_NETLIFY_STATIC === 'true'
 
 function iniciarPingOnline() {
   if (pingTimer) clearInterval(pingTimer)
@@ -92,6 +93,9 @@ function getWsUrl(): string {
 }
 
 function connect() {
+  // Netlify serves the frontend and Functions, but does not keep the
+  // persistent Express WebSocket server used by the Replit deployment.
+  if (netlifyStatic) return
   if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return
 
   ws = new WebSocket(getWsUrl())
