@@ -176,6 +176,8 @@
   grid-column: 1;
   grid-row: 1 / span 2;
   min-width: 0;
+  width: calc(100% - .55rem);
+  justify-self: start;
   margin-top: 0;
   padding: .8rem;
   border: 1px solid #245174;
@@ -197,6 +199,15 @@
 .radar-page .radar-live-map {
   height: min(76vh, 820px);
   min-height: 520px;
+}
+
+.radar-page:not(.radar-tv) .radar-note-card > .radar-note-heading .card-label,
+.radar-page:not(.radar-tv) .radar-activities .radar-list-heading .card-label {
+  font-size: .61rem;
+}
+
+.radar-page:not(.radar-tv) .radar-calendar-card .calendar-top > div > span {
+  font-size: .56rem;
 }
 
 .radar-page .radar-map-hint {
