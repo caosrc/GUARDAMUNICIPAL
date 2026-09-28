@@ -6523,33 +6523,41 @@ html:-webkit-full-screen {
   }
 }
 
-.radar-page:not(.radar-tv) .radar-note-card .radar-reminder-trigger {
+.radar-page .radar-note-card .radar-reminder-trigger {
   padding: .24rem .38rem;
-  font-size: .5rem;
+  font-size: .5rem !important;
 }
 
-.radar-page:not(.radar-tv) .radar-note-card .radar-mini-list,
-.radar-page:not(.radar-tv) .radar-note-card .radar-mini-item {
-  font-size: .52rem;
+.radar-page .radar-note-card .radar-mini-list,
+.radar-page .radar-note-card .radar-mini-list > span,
+.radar-page .radar-note-card .radar-mini-item {
+  font-size: .52rem !important;
 }
 
-.radar-page:not(.radar-tv) .radar-note-card .radar-mini-item b {
-  font-size: .46rem;
+.radar-page .radar-note-card .radar-mini-item b {
+  font-size: .46rem !important;
 }
 
-.radar-page:not(.radar-tv) .radar-activities .radar-list-heading h2 {
-  font-size: .54rem;
+.radar-page .radar-activities .radar-list-heading h2 {
+  font-size: .54rem !important;
 }
 
-.radar-page:not(.radar-tv) .radar-activities .radar-list-heading > strong {
-  font-size: .48rem;
+.radar-page .radar-activities .radar-list-heading > strong {
+  font-size: .48rem !important;
 }
 
-.radar-page:not(.radar-tv) .radar-activities .radar-activity-columns h3 {
-  font-size: .5rem;
+.radar-page .radar-activities .radar-activity-columns h3 {
+  font-size: .5rem !important;
 }
 
-.radar-page:not(.radar-tv) .radar-activities .radar-empty {
+.radar-page .radar-activities .radar-empty {
   padding: .42rem;
-  font-size: .48rem;
+  font-size: .48rem !important;
+}
+
+body.radar-tv-active .radar-tv .radar-note-card > .radar-note-heading .card-label,
+body.radar-tv-active .radar-tv .radar-activities .radar-list-heading .card-label {
+  font-size: .32rem !important;
+  letter-spacing: .06em !important;
+  line-height: .9;
 }
