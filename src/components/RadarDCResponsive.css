@@ -6561,3 +6561,58 @@ body.radar-tv-active .radar-tv .radar-activities .radar-list-heading .card-label
   letter-spacing: .06em !important;
   line-height: .9;
 }
+
+@media (min-width: 701px) {
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card {
+    padding: .35rem .45rem !important;
+    overflow-y: hidden !important;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .calendar-top > div > span {
+    font-size: .38rem !important;
+    letter-spacing: .05em !important;
+    line-height: .9;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card h2 {
+    margin: .05rem 0 .12rem !important;
+    font-size: .7rem !important;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .month-buttons {
+    gap: .12rem;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .month-buttons button {
+    width: 19px;
+    height: 19px;
+    font-size: .7rem;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .weekdays {
+    margin-bottom: 2px;
+    font-size: .4rem;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .calendar-grid {
+    gap: 1px;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .calendar-grid button {
+    min-height: 18px;
+    border-radius: 4px;
+    font-size: .55rem;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .calendar-grid i {
+    top: 0;
+    right: 1px;
+    padding: 0 2px;
+    font-size: .34rem;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .calendar-legend {
+    margin-top: .18rem;
+    font-size: .4rem;
+  }
+}
