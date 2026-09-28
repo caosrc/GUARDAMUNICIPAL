@@ -6317,7 +6317,7 @@ html:-webkit-full-screen {
  */
 @media (min-width: 701px) {
   body.radar-tv-active .radar-page.radar-tv .radar-dashboard {
-    --tv-sidebar: clamp(250px, 24vw, 315px);
+    --tv-sidebar: clamp(268px, 25.5vw, 335px);
     --tv-panel-gap: clamp(.35rem, .55vw, .65rem);
     display: grid !important;
     grid-template-columns: var(--tv-sidebar) minmax(0, 1fr);
@@ -6460,5 +6460,14 @@ html:-webkit-full-screen {
 
   body.radar-tv-active .radar-page.radar-tv .radar-live-map-footer {
     flex: 0 0 auto;
+  }
+}
+
+@media (min-width: 701px) {
+  body.radar-tv-active .radar-page.radar-tv .radar-note-card .card-label,
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .calendar-top > div > span,
+  body.radar-tv-active .radar-page.radar-tv .radar-activities .card-label {
+    font-size: clamp(.58rem, .68vw, .78rem);
+    letter-spacing: .1em;
   }
 }
