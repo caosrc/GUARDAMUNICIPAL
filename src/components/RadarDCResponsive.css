@@ -6480,3 +6480,43 @@ html:-webkit-full-screen {
     letter-spacing: .1em;
   }
 }
+
+/* Compactação final do painel normal: os títulos ganham espaço sem criar
+   rolagem interna no calendário. O modo TV mantém sua própria composição. */
+@media (min-width: 701px) {
+  .radar-page:not(.radar-tv) .radar-note-card > .radar-note-heading .card-label,
+  .radar-page:not(.radar-tv) .radar-activities .radar-list-heading .card-label {
+    font-size: .45rem;
+    letter-spacing: .08em;
+  }
+
+  .radar-page:not(.radar-tv) .radar-calendar-card,
+  .radar-page:not(.radar-tv) .radar-overview .radar-calendar-card {
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .radar-page:not(.radar-tv) .radar-calendar-card .calendar-top > div > span {
+    font-size: .42rem;
+    letter-spacing: .06em;
+  }
+
+  .radar-page:not(.radar-tv) .radar-calendar-card h2 {
+    margin: .08rem 0 .18rem;
+    font-size: .74rem;
+  }
+
+  .radar-page:not(.radar-tv) .radar-calendar-card .calendar-grid {
+    gap: 2px;
+  }
+
+  .radar-page:not(.radar-tv) .radar-calendar-card .calendar-grid button {
+    min-height: 22px;
+    font-size: .58rem;
+  }
+
+  .radar-page:not(.radar-tv) .radar-calendar-card .calendar-legend {
+    margin-top: .25rem;
+    font-size: .46rem;
+  }
+}
