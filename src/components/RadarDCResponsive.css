@@ -6308,3 +6308,157 @@ html:-webkit-full-screen {
     line-height: 1;
   }
 }
+
+/*
+ * Modo TV — composição operacional inspirada no painel de referência:
+ * a lateral concentra os quadros de apoio e o mapa fica como área principal.
+ * Este bloco é propositalmente o último para vencer as regras responsivas
+ * históricas deste arquivo.
+ */
+@media (min-width: 701px) {
+  body.radar-tv-active .radar-page.radar-tv .radar-dashboard {
+    --tv-sidebar: clamp(250px, 24vw, 315px);
+    --tv-panel-gap: clamp(.35rem, .55vw, .65rem);
+    display: grid !important;
+    grid-template-columns: var(--tv-sidebar) minmax(0, 1fr);
+    grid-template-rows: minmax(116px, 1fr) minmax(138px, 1.12fr) minmax(132px, .98fr);
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    gap: var(--tv-panel-gap);
+    padding: clamp(.35rem, .75vh, .65rem) clamp(.6rem, 1.05vw, 1.15rem) .35rem;
+    overflow: hidden;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-overview,
+  body.radar-tv-active .radar-page.radar-tv .radar-layout,
+  body.radar-tv-active .radar-page.radar-tv .radar-right-column {
+    display: contents !important;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-google-weather {
+    display: none !important;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-note-card,
+  body.radar-tv-active .radar-page.radar-tv .radar-activities,
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card {
+    width: auto;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    margin: 0;
+    border-color: #25587c;
+    border-radius: 8px;
+    background: #102f4d;
+    overflow: hidden;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-note-card {
+    display: flex !important;
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: column;
+    padding: clamp(.55rem, .8vw, .8rem);
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-note-card .radar-mini-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-note-card .radar-cnl-inline {
+    display: none;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-activities {
+    grid-column: 1;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(.55rem, .8vw, .8rem);
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-activity-columns {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card {
+    grid-column: 1;
+    grid-row: 3;
+    padding: clamp(.5rem, .7vw, .7rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card h2 {
+    margin: .18rem 0 .4rem;
+    font-size: clamp(.9rem, 1.15vw, 1.2rem);
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .calendar-grid {
+    gap: clamp(2px, .2vw, 4px);
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-calendar-card .calendar-grid button {
+    min-height: clamp(22px, 3.1vh, 34px);
+    border-radius: 5px;
+    font-size: clamp(.72rem, .95vw, 1rem);
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-live-map-card {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    display: flex;
+    flex-direction: column;
+    width: auto;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: clamp(.45rem, .65vw, .65rem);
+    border: 1px solid #25587c;
+    border-radius: 8px;
+    background: #102f4d;
+    overflow: hidden;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-live-map-heading {
+    flex: 0 0 auto;
+    margin-bottom: .35rem;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-live-map-heading h3 {
+    font-size: clamp(.8rem, 1vw, 1.08rem);
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-live-map-toolbar {
+    flex: 0 0 auto;
+    margin-bottom: .3rem;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-live-map-status {
+    flex: 0 0 auto;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-live-map {
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    border-radius: 7px;
+  }
+
+  body.radar-tv-active .radar-page.radar-tv .radar-live-map-footer {
+    flex: 0 0 auto;
+  }
+}
