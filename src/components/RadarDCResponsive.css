@@ -6486,8 +6486,9 @@ html:-webkit-full-screen {
 @media (min-width: 701px) {
   .radar-page:not(.radar-tv) .radar-note-card > .radar-note-heading .card-label,
   .radar-page:not(.radar-tv) .radar-activities .radar-list-heading .card-label {
-    font-size: .45rem;
-    letter-spacing: .08em;
+    font-size: .32rem;
+    letter-spacing: .06em;
+    line-height: .9;
   }
 
   .radar-page:not(.radar-tv) .radar-calendar-card,
@@ -6497,8 +6498,9 @@ html:-webkit-full-screen {
   }
 
   .radar-page:not(.radar-tv) .radar-calendar-card .calendar-top > div > span {
-    font-size: .42rem;
-    letter-spacing: .06em;
+    font-size: .3rem;
+    letter-spacing: .05em;
+    line-height: .9;
   }
 
   .radar-page:not(.radar-tv) .radar-calendar-card h2 {
